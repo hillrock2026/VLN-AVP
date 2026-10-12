@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vln-avp/protocol/v1/envelope.schema.json",
+  "title": "VLN-AVP IPC v1 envelope",
+  "description": "Bundled schema for the VLN-AVP IPC v1 NDJSON protocol. Validate a request line against #/$defs/request and a response line against #/$defs/response. These are adapter-level protocol fields, not Agent-Kernel JSON types.",
+  "$comment": "request_id is a correlation identity only: it does not imply deduplication or exactly-once execution.",
+  "$defs": {
+    "request": {
+      "title": "Request",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_version",
+        "request_id",
+        "type",
+        "capability_id",
+        "payload"
+      ],
+      "properties": {
+        "protocol_version": { "type": "string", "const": "1" },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "\\S",
+          "description": "Correlation identity; not an idempotency key."
+        },
+        "type": { "type": "string", "const": "submit" },
+        "capability_id": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "payload": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "maxLength": 1048576
+        }
+      }
+    },
+    "response": {
+      "title": "Response",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_version",
+        "request_id",
+        "host_kind",
+        "accepted",
+        "submission_status",
+        "observation_status",
+        "execution_status",
+        "output",
+        "error"
+      ],
+      "properties": {
+        "protocol_version": { "type": "string", "const": "1" },
+        "request_id": { "type": ["string", "null"] },
+        "host_kind": { "type": "string", "enum": ["stub", "kernel"] },
+        "accepted": { "type": "boolean" },
+        "submission_status": {
+          "type": ["string", "null"],
+          "enum": ["completed", "rejected", "failed", null]
+        },
+        "observation_status": {
+          "type": ["string", "null"],
+          "enum": ["success", "failure", null]
+        },
+        "execution_status": { "type": ["string", "null"] },
+        "output": { "type": ["string", "null"] },
+        "error": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "message"],
+              "properties": {
+                "code": { "type": "string", "minLength": 1 },
+                "message": { "type": "string" }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

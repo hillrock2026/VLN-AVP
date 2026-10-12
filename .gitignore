@@ -1,0 +1,92 @@
+# ============================================================
+# VLN-AVP .gitignore
+# ============================================================
+# Agent-Kernel is an independently maintained nested checkout. It is not
+# tracked by this repository; adding it would record a gitlink, not its source.
+/Agent-Kernel/
+
+# Local-only prompts, audit artifacts and editor settings.
+/prompt/
+/docs/audit/
+/.vscode/
+
+# ---- Python -----------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ---- C++ / CMake / build artifacts ------------------------------------
+# Kernel build trees (build/, build-msvc/, build-k0-*/, cmake-build-*/)
+build*/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+*.ninja
+.ninja_deps
+.ninja_log
+compile_commands.json
+*.obj
+*.o
+*.pdb
+*.ilk
+*.lib
+*.exp
+*.dll
+*.exe
+*.so
+*.a
+*.dylib
+
+# ---- Model weights / large binaries (never commit) --------------------
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.gguf
+*.onnx
+*.h5
+
+# ---- Datasets / runs / logs -------------------------------------------
+data/
+datasets/
+runs/
+outputs/
+logs/
+*.log
+
+# ---- Editors / OS -----------------------------------------------------
+.vs/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# ---- Office lock files ------------------------------------------------
+~$*
+
+# ---- Secrets ----------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.local
+secrets/
