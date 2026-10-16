@@ -1,0 +1,31 @@
+# ============================================================
+# Config.cmake.in — Package configuration for find_package
+# ============================================================
+# This file is processed by configure_package_config_file()
+# during the build.
+#
+# Usage from downstream projects:
+#   find_package(AgentKernel REQUIRED)
+#   target_link_libraries(my_app PRIVATE AK::agent_kernel)
+# ============================================================
+
+@PACKAGE_INIT@
+
+# -----------------------------------------------------------
+# Import target
+# -----------------------------------------------------------
+if(NOT TARGET AK::agent_kernel)
+    include("${CMAKE_CURRENT_LIST_DIR}/AgentKernelTargets.cmake")
+endif()
+
+# -----------------------------------------------------------
+# Include directory
+# -----------------------------------------------------------
+set_and_check(AgentKernel_INCLUDE_DIR
+    "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_INCLUDEDIR@"
+)
+
+# -----------------------------------------------------------
+# Check required components
+# -----------------------------------------------------------
+check_required_components(AgentKernel)

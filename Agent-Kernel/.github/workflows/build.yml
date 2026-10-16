@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ubuntu-gcc-build-test:
+    name: Ubuntu GCC Build & Test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential libgtest-dev
+
+      - name: Configure
+        run: cmake -S . -B build-b3-gcc -DAK_BUILD_TESTS=ON -DAK_BUILD_EXAMPLES=OFF -DAK_BUILD_PROTOTYPE=OFF -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build-b3-gcc -j
+
+      - name: Test
+        run: ctest --test-dir build-b3-gcc --output-on-failure

@@ -1,9 +1,12 @@
 # ============================================================
 # VLN-AVP .gitignore
 # ============================================================
-# Agent-Kernel is an independently maintained nested checkout. It is not
-# tracked by this repository; adding it would record a gitlink, not its source.
-/Agent-Kernel/
+# Agent-Kernel is vendored here as a plain source snapshot (NO nested .git),
+# exported from https://github.com/hillrock2026/Agent-Kernel at a pinned
+# commit, so VLN-AVP can track Kernel edits as ordinary files. See
+# docs/AGENT_KERNEL_SNAPSHOT.md for the pinned revision and update rules.
+# (The separate clone at ../Agent-Kernel keeps its own Git history and must
+#  never be written to by VLN-AVP.)
 
 # Local-only prompts, audit artifacts and editor settings.
 /prompt/

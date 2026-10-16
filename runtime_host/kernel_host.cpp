@@ -10,7 +10,10 @@
 //     -> Runtime::Run -> capability invoker -> ak::ExecutionResult
 //
 // Scope (deliberately minimal):
-//   * Executes ONLY the test-domain capability "test.echo".
+//   * Executes the test-domain capability "test.echo".
+//   * Executes a SIMULATION-ONLY "parking.move" stub that validates the
+//     AgentIntent v1 defensive subset and echoes the target; it controls no
+//     vehicle and proves nothing about real parking.
 //   * Defines NO navigation / robot / model capability.
 //   * Reuses the existing protocol contract (protocol/v1); it does not
 //     define a second, incompatible schema.
@@ -27,11 +30,14 @@
 //     still has a public constructor and Runtime::Run is publicly reachable).
 // ============================================================
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 
 #if defined(_WIN32)
@@ -90,6 +96,18 @@ constexpr const char* kHostKind = "kernel";
 constexpr const char* kTestCapabilityId = "test.echo";
 constexpr const char* kTestProviderId = "vln.test.host";
 constexpr const char* kEchoPrefix = "[kernel-echo]:";
+
+// ---- parking.move stub constants (M1-04B0 §3/§5, frozen v1) --------------
+// The payload contract is AgentIntent v1 (src/vln/intent/agent_intent.py); the
+// stub validates only the defensive subset S1-S8 (M1-04B0 §4.2), a strict
+// subset of the Python-authoritative contract. This is a SIMULATION ONLY:
+// "stub_completed" does not mean a real vehicle reached the target.
+constexpr const char* kParkingCapabilityId = "parking.move";
+constexpr const char* kParkingProviderId = "vln.parking.stub";
+constexpr const char* kAgentIntentContractVersion = "1";
+constexpr const char* kParkingOutputVersion = "1";
+constexpr const char* kParkingStatusStubCompleted = "stub_completed";
+constexpr const char* kParkingExecutionMode = "simulation";
 
 void Log(const std::string& message) {
     std::cerr << "kernel-host: " << message << '\n';
@@ -165,6 +183,103 @@ bool IsNonBlank(const std::string& text) noexcept {
         }
     }
     return false;
+}
+
+// ---- parking.move stub (M1-04B0 §4.2 S1-S8, §5 output v1) -----------------
+// The stub exists so the VLN-AVP chain can be exercised end to end without a
+// real vehicle. Every rejection path throws, which the Executor turns into a
+// deterministic invocation failure (no synthetic success is ever produced).
+bool HasExactKeys(const ordered_json& obj,
+                  std::initializer_list<const char*> keys) {
+    if (!obj.is_object() || obj.size() != keys.size()) {
+        return false;
+    }
+    for (const char* key : keys) {
+        if (obj.find(key) == obj.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// S8: JSON number and finite. nlohmann reports bool/null/string as non-numbers,
+// so `true`, `null` and `"1"` are rejected without an explicit type list.
+bool IsFiniteJsonNumber(const ordered_json& value) {
+    if (value.is_number_float()) {
+        return std::isfinite(value.get<double>());
+    }
+    return value.is_number_integer();
+}
+
+std::string RunParkingMoveStub(const std::string& payload) {
+    ordered_json intent;
+    try {  // S1: payload is legal JSON
+        intent = ordered_json::parse(payload);
+    } catch (const ordered_json::exception&) {
+        throw std::runtime_error("parking.move stub: payload is not valid JSON");
+    }
+
+    // S2: root is an object
+    if (!intent.is_object()) {
+        throw std::runtime_error("parking.move stub: payload must be an object");
+    }
+    // S3: exact top-level key set (fail-closed)
+    if (!HasExactKeys(intent, {"contract_version", "intent_id", "action",
+                               "target"})) {
+        throw std::runtime_error(
+            "parking.move stub: unexpected top-level field set");
+    }
+    // S4: contract_version is the string "1"
+    if (!intent.at("contract_version").is_string() ||
+        intent.at("contract_version").get<std::string>() !=
+            kAgentIntentContractVersion) {
+        throw std::runtime_error(
+            "parking.move stub: unsupported contract_version");
+    }
+    // S5: action is "parking.move"
+    if (!intent.at("action").is_string() ||
+        intent.at("action").get<std::string>() != kParkingCapabilityId) {
+        throw std::runtime_error("parking.move stub: unsupported action");
+    }
+    // S6: intent_id is a non-blank string (length authority stays in Python)
+    const ordered_json& intent_id_node = intent.at("intent_id");
+    if (!intent_id_node.is_string()) {
+        throw std::runtime_error("parking.move stub: intent_id must be a string");
+    }
+    const std::string intent_id = intent_id_node.get<std::string>();
+    if (!IsNonBlank(intent_id)) {
+        throw std::runtime_error("parking.move stub: intent_id must be non-blank");
+    }
+    // S7: target is an object with exactly {x, y, heading}
+    const ordered_json& target = intent.at("target");
+    if (!HasExactKeys(target, {"x", "y", "heading"})) {
+        throw std::runtime_error(
+            "parking.move stub: unexpected target field set");
+    }
+    // S8: x, y, heading are finite JSON numbers
+    for (const char* key : {"x", "y", "heading"}) {
+        if (!IsFiniteJsonNumber(target.at(key))) {
+            throw std::runtime_error(
+                std::string("parking.move stub: ") + key +
+                " must be a finite number");
+        }
+    }
+
+    // Deterministic output v1 (M1-04B0 §5): no request_id, no positional or
+    // arrival facts. Target values are echoed as parsed (not recomputed).
+    ordered_json echoed_target;
+    echoed_target["x"] = target.at("x");
+    echoed_target["y"] = target.at("y");
+    echoed_target["heading"] = target.at("heading");
+
+    ordered_json output;
+    output["output_version"] = kParkingOutputVersion;
+    output["status"] = kParkingStatusStubCompleted;
+    output["execution_mode"] = kParkingExecutionMode;
+    output["action"] = kParkingCapabilityId;
+    output["intent_id"] = intent_id;
+    output["target"] = std::move(echoed_target);
+    return output.dump();
 }
 
 // ---- Response construction ----------------------------------------------
@@ -393,6 +508,12 @@ ordered_json ExecuteViaKernel(const ValidatedRequest& request) {
         [](const std::string& payload) -> std::string {
             return std::string(kEchoPrefix) + payload;
         });
+    // parking.move stub: registered on the Runtime like any other capability,
+    // so it is reached only through the same submission/observation path.
+    runtime->RegisterCapability(kParkingCapabilityId, kParkingProviderId,
+                                [](const std::string& payload) -> std::string {
+                                    return RunParkingMoveStub(payload);
+                                });
 
     // The sanctioned authorization path: the handle owns a
     // RuntimePublicApiAdapter bound to this Runtime.

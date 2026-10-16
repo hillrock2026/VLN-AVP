@@ -10,6 +10,9 @@ Design rules baked into this client:
 * No automatic retry. A transport failure, a terminated host, or a malformed
   response is raised to the caller. The client never re-sends a request whose
   outcome is uncertain.
+* The client is bound to one host process. Once a request may have executed
+  without a confirmed response, the client refuses to restart the host or
+  resubmit - it raises :class:`UncertainOutcomeError` instead.
 * A response whose ``request_id`` does not match the request is rejected.
 * Anything on stdout that is not a valid v1 response envelope is a protocol
   violation, not a diagnostic.
@@ -32,6 +35,7 @@ from vln.ipc.errors import (
     ProtocolViolation,
     ResponseMismatchError,
     TransportError,
+    UncertainOutcomeError,
 )
 
 
@@ -51,6 +55,9 @@ class HostClient:
         self._cwd = cwd
         self._env = env
         self._proc: Optional[subprocess.Popen] = None
+        # Set once a request may have been delivered without a confirmed
+        # outcome. While set, the client must not restart the host or resubmit.
+        self._outcome_uncertain = False
         self._stderr_lines: list[str] = []
         self._stderr_lock = threading.Lock()
         self._stderr_thread: Optional[threading.Thread] = None
@@ -58,10 +65,25 @@ class HostClient:
     # -- lifecycle ------------------------------------------------------
 
     def start(self) -> None:
-        """Start the host process if it is not already running."""
+        """Start the host process if it is not already running.
 
-        if self._proc is not None and self._proc.poll() is None:
-            return
+        A host that has already terminated is only replaced while the client is
+        not holding an unconfirmed request. If a submitted request's outcome is
+        unconfirmed, restarting is refused (see
+        :class:`~vln.ipc.errors.UncertainOutcomeError`).
+        """
+
+        if self._proc is not None:
+            status = self._proc.poll()
+            if status is None:
+                return
+            if self._outcome_uncertain:
+                raise UncertainOutcomeError(
+                    "host process terminated (exit code "
+                    f"{status}) while a request may have executed; refusing to "
+                    "restart the host and resubmit - the outcome is uncertain"
+                )
+            # Host ended with no unconfirmed request: a fresh process is safe.
         child_env = self._env
         if child_env is None:
             child_env = os.environ.copy()
@@ -143,6 +165,9 @@ class HostClient:
 
         response = self.request_line(request.to_line())
         if response.request_id != request.request_id:
+            # A response was consumed, but not for the request we sent: its
+            # outcome remains unconfirmed, so block any later resend.
+            self._outcome_uncertain = True
             raise ResponseMismatchError(
                 "response request_id does not match the request: "
                 f"sent={request.request_id!r} received={response.request_id!r}"
@@ -159,6 +184,12 @@ class HostClient:
         self.start()
         proc = self._proc
         assert proc is not None and proc.stdin is not None and proc.stdout is not None
+
+        # A submission is being attempted: from here the request line may reach
+        # the host, so its outcome is unconfirmed until a valid response line
+        # is read. While this stays true the client will not restart the host
+        # or resubmit - it raises UncertainOutcomeError instead.
+        self._outcome_uncertain = True
 
         data = text.encode("utf-8") + b"\n"
         try:
@@ -184,7 +215,10 @@ class HostClient:
                 "response line is not valid UTF-8",
             ) from exc
         line = decoded.rstrip("\n").rstrip("\r")
-        return envelope.parse_response_line(line)
+        response = envelope.parse_response_line(line)
+        # A valid v1 response confirms a terminal outcome for this exchange.
+        self._outcome_uncertain = False
+        return response
 
 
 __all__ = ["HostClient"]

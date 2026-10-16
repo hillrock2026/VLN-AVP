@@ -40,6 +40,17 @@ class HostTerminatedError(TransportError):
     """The host process ended (stdout/stdin closed) before responding."""
 
 
+class UncertainOutcomeError(TransportError):
+    """A request may have executed, but its outcome could not be confirmed.
+
+    Raised when the client refuses to (re)submit a request that it cannot prove
+    was never executed - for example after the host terminated while a request
+    was in flight. The outcome is unknown, not known-to-have-failed: the
+    capability may already have run, so a caller must not blindly retry. This
+    is deliberately a transport error, never a deterministic execution failure.
+    """
+
+
 class ResponseMismatchError(IpcError):
     """A response was received for a different ``request_id`` than sent."""
 
@@ -49,5 +60,6 @@ __all__ = [
     "ProtocolViolation",
     "TransportError",
     "HostTerminatedError",
+    "UncertainOutcomeError",
     "ResponseMismatchError",
 ]

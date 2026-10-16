@@ -1,0 +1,34 @@
+# Build directories
+/build*/
+/out/
+/validation/build/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# CMake (generated in-source build artifacts)
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+
+# Compiled
+*.o
+*.obj
+*.lib
+*.dll
+*.exe
+*.so
+*.dylib
+*.a
+
+# Testing
+/Testing/

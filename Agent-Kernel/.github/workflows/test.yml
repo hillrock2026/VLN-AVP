@@ -1,0 +1,3 @@
+# test.yml (reserved / not active)
+# Reserved for a future dedicated test matrix (e.g. Clang / sanitizer builds).
+# The active build+test CI is defined in build.yml.

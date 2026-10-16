@@ -1,0 +1,397 @@
+# ADD0001 — Lifecycle Authority Design
+
+**Document ID:** ADD0001
+
+**Revision:** 2.0
+
+**Title:** Lifecycle Authority Design
+
+**Status:** Accepted (Revision 2.0)
+
+**Category:** Architecture Design
+
+---
+
+# 1. Purpose
+
+This document defines the architectural authority governing lifecycle progression within the Agent Kernel architecture.
+
+Its purpose is to resolve the lifecycle authority ambiguity identified during the AVP0000-I1 Architecture Consistency Review.
+
+This document is normative for future revisions of lifecycle-related specifications.
+
+This document does not introduce new Runtime modules, APIs, services, or implementation classes.
+
+---
+
+# 2. Background
+
+The Walking Skeleton prototype successfully validated the architectural separation between:
+
+* Core Domain
+* Runtime
+* Scheduler
+* Executor
+* Capability Resolution
+
+Implementation Review confirmed that the architecture preserves ownership boundaries.
+
+However, the review also identified an unresolved architectural question.
+
+Although the current specifications define lifecycle states such as:
+
+```text
+Task::kCompleted
+
+Workflow::kCompleted
+
+Session::kCompleted
+```
+
+they do not define:
+
+* who owns lifecycle progression;
+* who decides that completion has occurred;
+* how lifecycle completion propagates through the execution hierarchy.
+
+Consequently, AVP0000-I1 could not validate:
+
+```text
+Task → Completed
+
+Workflow → Completed
+```
+
+without architectural interpretation.
+
+The purpose of this document is to define lifecycle authority.
+
+The concrete implementation mechanism remains outside the scope of this document.
+
+---
+
+# 3. Architectural Concepts
+
+## 3.1 Lifecycle Authority
+
+Lifecycle Authority is an architectural responsibility.
+
+It determines whether a lifecycle transition is permitted.
+
+Lifecycle Authority is **not**:
+
+* a Runtime component;
+* a Runtime module;
+* a Runtime service;
+* a Runtime thread;
+* a Runtime object;
+* a C++ class;
+* an implementation artifact.
+
+Future Runtime specifications may realize Lifecycle Authority using any implementation mechanism consistent with the architecture.
+
+---
+
+## 3.2 Lifecycle Progression
+
+Lifecycle progression is an architectural decision.
+
+Execution success alone does not imply lifecycle completion.
+
+Completion shall always result from an explicit lifecycle decision.
+
+---
+
+## 3.3 Lifecycle Ownership
+
+Every Core Domain object owns its own lifecycle.
+
+Only the owner of a lifecycle may expose lifecycle state.
+
+Runtime may determine that progression is permitted.
+
+Runtime does not become the owner of Core Domain lifecycle.
+
+---
+
+# 4. Design Principles
+
+## Principle 1 — Separation of Authority and Mechanism
+
+Architecture defines authority.
+
+Runtime specifications define contracts.
+
+Implementation defines mechanisms.
+
+These concerns shall remain independent.
+
+---
+
+## Principle 2 — Execution Does Not Own Lifecycle
+
+Execution produces execution results.
+
+Execution never determines lifecycle progression.
+
+Executor therefore never owns lifecycle authority.
+
+---
+
+## Principle 3 — Scheduling Does Not Own Lifecycle
+
+Scheduling determines execution order.
+
+Scheduling never owns lifecycle progression.
+
+Scheduler therefore never completes Tasks or Workflows.
+
+---
+
+## Principle 4 — Lifecycle Is Derived
+
+Lifecycle progression is derived from architectural conditions.
+
+It shall never be inferred from a single implementation action.
+
+---
+
+## Principle 5 — Events Never Change State
+
+Events are immutable observations.
+
+Publishing an event shall never modify lifecycle state.
+
+Subscribers shall never drive lifecycle transitions.
+
+---
+
+# 5. Lifecycle Authority Model
+
+## 5.1 Task
+
+Task owns Task lifecycle.
+
+Execution produces an ExecutionResult.
+
+Lifecycle Authority evaluates whether Task completion conditions have been satisfied.
+
+If satisfied, Task becomes eligible to enter the Completed state.
+
+This document intentionally does not define:
+
+* transition APIs;
+* transition methods;
+* internal state mutation;
+* implementation mechanism.
+
+Those concerns belong to future Runtime specifications.
+
+---
+
+## 5.2 Workflow
+
+Workflow owns Workflow lifecycle.
+
+Workflow completion is derived.
+
+A Workflow becomes eligible for completion only after all architectural completion conditions have been satisfied.
+
+Typical conditions include:
+
+* all Tasks completed;
+* no remaining runnable Tasks;
+* no pending execution activities.
+
+The exact evaluation mechanism is outside the scope of this document.
+
+---
+
+## 5.3 Session
+
+Session owns Session lifecycle.
+
+Session completion is derived from Workflow completion.
+
+A Session shall become eligible for completion only after all Workflows have completed.
+
+The mechanism by which Runtime observes this condition is intentionally unspecified.
+
+---
+
+# 6. Responsibility Boundaries
+
+## Runtime
+
+Runtime observes execution.
+
+Runtime evaluates completion conditions.
+
+Runtime owns lifecycle authority.
+
+Runtime does not own Core Domain lifecycle state.
+
+Runtime does not directly execute capabilities.
+
+---
+
+## Scheduler
+
+Scheduler evaluates WorkflowGraph.
+
+Scheduler selects runnable Tasks.
+
+Scheduler produces SchedulingDecision.
+
+Scheduler never:
+
+* executes Tasks;
+* evaluates execution success;
+* determines lifecycle completion;
+* modifies lifecycle state.
+
+---
+
+## Executor
+
+Executor receives SchedulingDecision.
+
+Executor resolves Capability.
+
+Executor invokes Capability.
+
+Executor produces ExecutionResult.
+
+Executor reports execution outcome.
+
+Executor never:
+
+* owns lifecycle authority;
+* determines lifecycle completion;
+* modifies lifecycle state.
+
+---
+
+## EventBus
+
+EventBus publishes immutable lifecycle observations.
+
+EventBus does not determine lifecycle.
+
+EventBus does not modify lifecycle.
+
+Subscribers shall treat lifecycle events as read-only notifications.
+
+---
+
+# 7. Design Alternatives
+
+## Alternative A — Executor Owns Completion
+
+Description
+
+Executor directly transitions Task and Workflow to Completed.
+
+Decision
+
+Rejected.
+
+Reason
+
+Execution ownership is fundamentally different from lifecycle authority.
+
+Combining both responsibilities violates separation of concerns.
+
+---
+
+## Alternative B — Scheduler Owns Completion
+
+Description
+
+Scheduler transitions Task and Workflow after scheduling decisions.
+
+Decision
+
+Rejected.
+
+Reason
+
+Scheduler is responsible only for execution planning.
+
+Allowing Scheduler to complete lifecycle objects introduces execution semantics into scheduling.
+
+---
+
+## Alternative C — Lifecycle Authority Owned by Runtime
+
+Description
+
+Runtime evaluates execution outcomes and determines whether lifecycle progression is permitted.
+
+Decision
+
+Accepted.
+
+Reason
+
+This preserves the architectural separation between:
+
+* execution;
+* scheduling;
+* lifecycle;
+* Core Domain ownership.
+
+It also allows future Runtime implementations to evolve without modifying Core Domain architecture.
+
+---
+
+# 8. Architectural Consequences
+
+This design establishes a single architectural principle:
+
+Execution produces facts.
+
+Lifecycle Authority evaluates facts.
+
+Core Domain exposes lifecycle.
+
+No architectural component simultaneously owns scheduling, execution, and lifecycle progression.
+
+This separation preserves long-term architectural stability.
+
+---
+
+# 9. Follow-up Specification Revisions
+
+After acceptance of this document, the following specifications should be updated.
+
+AK0016
+
+* Clarify Task lifecycle authority.
+* Define lifecycle transition contract.
+* Specify observable completion semantics.
+
+AK0015
+
+* Clarify Workflow completion authority.
+* Define Workflow completion contract.
+* Define derived completion semantics.
+
+AK0014
+
+* Clarify Session completion in relation to Workflow completion.
+
+AVP0000-I1
+
+* Clarify acceptable validation evidence for:
+
+  * Task → Completed
+  * Workflow → Completed
+
+This document intentionally does **not** prescribe implementation APIs.
+
+Such mechanisms belong to the corresponding Runtime specifications.
+
+---
+
+# End of Document

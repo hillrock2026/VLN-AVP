@@ -18,6 +18,7 @@ from vln.ipc.errors import (
     HostTerminatedError,
     ResponseMismatchError,
     TransportError,
+    UncertainOutcomeError,
 )
 
 
@@ -93,6 +94,16 @@ sys.exit(3)
 """
 
 
+_LAUNCH_MARKER_HOST = """
+import sys
+launch_file = sys.argv[1]
+with open(launch_file, "a", encoding="utf-8") as handle:
+    handle.write("L")
+sys.stdin.buffer.readline()
+sys.exit(3)
+"""
+
+
 _NON_JSON_STDOUT_HOST = """
 import sys
 sys.stdin.buffer.readline()
@@ -163,6 +174,71 @@ def test_no_automatic_retry_after_uncertain_outcome(tmp_path: Path) -> None:
     finally:
         client.close()
     assert count_file.read_text(encoding="utf-8") == "x"
+
+
+def test_uncertain_outcome_does_not_restart_the_host(tmp_path: Path) -> None:
+    """A request that may have executed must not trigger a restart + resend.
+
+    The host appends one marker per process launch, so this proves no second
+    host was started after the first terminated - independently of any payload
+    side effect.
+    """
+
+    launch_file = tmp_path / "launch.txt"
+    script = _write_script(tmp_path, "marker.py", _LAUNCH_MARKER_HOST)
+    client = HostClient(_command(script, str(launch_file)))
+    request = Request(request_id="a", capability_id="test.echo", payload="p")
+    try:
+        with pytest.raises((TransportError, HostTerminatedError)):
+            client.send(request)
+        with pytest.raises((TransportError, HostTerminatedError)):
+            client.send(request)
+    finally:
+        client.close()
+    # Exactly one host process was ever started.
+    assert launch_file.read_text(encoding="utf-8") == "L"
+
+
+def test_uncertain_outcome_is_reported_as_uncertain(tmp_path: Path) -> None:
+    """Refusing to resubmit surfaces as an identifiable uncertain outcome.
+
+    The second attempt must fail as a transport-class uncertainty and must not
+    be dressed up as a deterministic failure or a fabricated success.
+    """
+
+    count_file = tmp_path / "count.txt"
+    script = _write_script(tmp_path, "count.py", _COUNT_ONCE_HOST)
+    client = HostClient(_command(script, str(count_file)))
+    request = Request(request_id="a", capability_id="test.echo", payload="p")
+    try:
+        with pytest.raises(TransportError):
+            client.send(request)
+        with pytest.raises(UncertainOutcomeError) as exc:
+            client.send(request)
+        assert isinstance(exc.value, TransportError)
+        assert not isinstance(exc.value, ProtocolViolation)
+    finally:
+        client.close()
+
+
+def test_confirmed_outcomes_still_allow_reuse(tmp_path: Path) -> None:
+    """A confirmed exchange leaves the client usable for further requests."""
+
+    script = _write_script(tmp_path, "echo.py", _ECHO_HOST)
+    client = HostClient(_command(script))
+    try:
+        for index in range(3):
+            response = client.send(
+                Request(
+                    request_id=f"r-{index}",
+                    capability_id="test.echo",
+                    payload=f"p{index}",
+                )
+            )
+            assert response.ok is True
+            assert response.output == f"OK:p{index}"
+    finally:
+        client.close()
 
 
 def test_invalid_response_envelope_rejected(tmp_path: Path) -> None:
