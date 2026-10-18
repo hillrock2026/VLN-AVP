@@ -51,9 +51,22 @@ from vln.vlm import (
 
 __all__ = [
     "MAX_FEEDBACK_TEXT_CHARS",
+    "FeedbackEncodingError",
     "ResponseFeedbackEncoder",
     "CompositeObservationEncoder",
 ]
+
+
+class FeedbackEncodingError(ModelCallError):
+    """A real ``Response`` could not be encoded into next-round model input.
+
+    Raised by the feedback-aware model client when the production encoder
+    refuses the previous round's response. It is a :class:`ModelCallError`
+    subclass, so existing fail-closed callers still catch it, but it is
+    distinguishable from an inference/service failure: no second model request
+    was attempted, and the original encoder failure is chained as
+    ``__cause__``. The loop does not fabricate empty or stale feedback.
+    """
 
 #: Maximum length, in characters, of a *free-text* feedback field (``output``
 #: and ``error.message``). Status, identifier and boolean fields are never

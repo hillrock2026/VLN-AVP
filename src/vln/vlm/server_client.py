@@ -35,8 +35,12 @@ Safety boundaries (all fail closed, all before or instead of a network send):
   the non-content headers, ``Authorization`` among them, onto a request to
   whatever host ``Location`` names - so this client posts through its own
   opener, whose redirect handler refuses instead of following.
-* **Text only.** Server-side image loading takes a URL/path/base64 string, so an
-  observation carrying in-memory images is refused rather than sent malformed.
+* **Images by data URI only.** The server's ``load_image`` accepts a ``data:``
+  URI, an ``http(s)://`` URL or a local path; the URL form would make the
+  *server* fetch an address this repository never vetted, so
+  :meth:`ZDTaichuServerBackend.generate_image` sends a ``data:`` URI built from
+  a local file by :mod:`vln.vlm.image_input`. An observation carrying in-memory
+  images stays refused on the text path rather than being sent malformed.
 
 The service is never started, stopped, reconfigured or probed: this module only
 performs the one POST the caller asks for.
@@ -52,6 +56,7 @@ from urllib import error as urlerror
 from urllib import request as urlrequest
 from urllib.parse import urlsplit
 
+from .image_input import ImagePart, load_image_part
 from .model_client import ModelCallError
 from .zdtaichu_backend import _build_message_parts
 from .zdtaichu_client import PreparedObservation
@@ -67,6 +72,7 @@ __all__ = [
     "UntrustedEndpointError",
     "UnsupportedServerInputError",
     "ZDTaichuServerBackend",
+    "build_image_messages",
 ]
 
 #: Environment variable the owner injects the API key through. Nothing else is
@@ -170,6 +176,33 @@ def _build_payload(
     if enable_thinking is not None:
         payload["enable_thinking"] = bool(enable_thinking)
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+
+def build_image_messages(part: ImagePart, instruction: str) -> list:
+    """Build the one user message carrying ``part`` and ``instruction``.
+
+    The shape is the confirmed ``ChatRequest.messages`` vocabulary: a content
+    list whose items are ``{"type": "image_url", "image_url": {"url": ...}}``
+    and ``{"type": "text", "text": ...}``. The image is always first and the
+    instruction second, so the instruction is never reordered away from the
+    image it qualifies. Both parts are required: this entry point exists to send
+    an image, so a blank instruction is refused rather than silently omitted.
+    """
+
+    if not isinstance(part, ImagePart):
+        raise UnsupportedServerInputError(
+            f"expected an ImagePart, got {type(part).__name__}"
+        )
+    if type(instruction) is not str or instruction.strip() == "":
+        raise UnsupportedServerInputError(
+            "instruction must be a non-blank str for an image request"
+        )
+    return [
+        {
+            "role": "user",
+            "content": [part.content_part(), {"type": "text", "text": instruction}],
+        }
+    ]
 
 
 def _server_error_message(exc: object) -> str:
@@ -325,6 +358,32 @@ class ZDTaichuServerBackend:
                 "synthesise; send a text-only observation instead"
             )
 
+        body = _build_payload(
+            messages,
+            model_name=self.model_name,
+            max_new_tokens=self.max_new_tokens,
+            temperature=self.temperature,
+            enable_thinking=self.enable_thinking,
+        )
+        api_key = _optional_api_key(self.api_key_env)
+        return _assistant_content(_post_once(self._endpoint, api_key, body, self.timeout))
+
+    def generate_image(self, image_path: str, instruction: str) -> str:
+        """Return the server's raw assistant text for one image + instruction.
+
+        The image is read from ``image_path`` (a local file), validated and
+        encoded by :func:`~vln.vlm.image_input.load_image_part`, and sent as a
+        ``data:`` URI in the same message as the instruction. The result is the
+        assistant text **verbatim** - no JSON repair, no intent, no execution.
+
+        Every failure is a :class:`ServerClientError`: an unusable image
+        (:class:`~vln.vlm.image_input.ImageInputError`), a blank instruction, an
+        HTTP status, a timeout, or an unparsable response. As on the text path
+        the call is made once and a redirect is refused rather than followed.
+        """
+
+        part = load_image_part(image_path)
+        messages = build_image_messages(part, instruction)
         body = _build_payload(
             messages,
             model_name=self.model_name,

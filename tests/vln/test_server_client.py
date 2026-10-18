@@ -19,15 +19,22 @@ with exactly one attempt.
 
 from __future__ import annotations
 
+import base64
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.request import HTTPRedirectHandler
 
 import pytest
 
 from vln.intent import ModelOutputParseError, parse_model_output
 from vln.vlm import server_client as server_client_module
+from vln.vlm.image_input import (
+    ImageInputError,
+    UnsupportedImageFormatError,
+    load_image_part,
+)
 from vln.vlm.model_client import ModelCallError
 from vln.vlm.server_client import (
     CHAT_COMPLETIONS_PATH,
@@ -669,3 +676,252 @@ def test_redirect_is_refused_without_a_credential_too(
     assert len(origin.requests) == 1
     assert origin.requests[0]["authorization"] is None
     assert target.requests == []
+
+
+# ----------------------------------------------------------------------
+# Multimodal requests: one image file plus the instruction
+# ----------------------------------------------------------------------
+
+#: A genuinely valid 1x1 PNG; the request assertions decode it back out.
+_PNG_BYTES = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="
+)
+_INSTRUCTION = "drive to slot P07"
+
+
+@pytest.fixture()
+def png_file(tmp_path):
+    path = tmp_path / "frame.png"
+    path.write_bytes(_PNG_BYTES)
+    return path
+
+
+def _image_payload(opener) -> dict:
+    (call,) = opener.calls
+    return json.loads(call["request"].data.decode("utf-8"))
+
+
+def test_image_request_carries_both_the_image_and_the_instruction(
+    fake_urlopen, with_key, png_file
+) -> None:
+    """The core property: one request holds the image *and* the instruction."""
+
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    raw = _backend().generate_image(str(png_file), _INSTRUCTION)
+    assert raw == _VALID_TEXT
+
+    payload = _image_payload(opener)
+    (message,) = payload["messages"]
+    assert message["role"] == "user"
+    image_part, text_part = message["content"]
+    assert image_part["type"] == "image_url"
+    assert text_part == {"type": "text", "text": _INSTRUCTION}
+
+    # The image really is in the body: MIME prefix plus the exact file bytes.
+    url = image_part["image_url"]["url"]
+    prefix = "data:image/png;base64,"
+    assert url.startswith(prefix)
+    assert base64.b64decode(url[len(prefix):]) == _PNG_BYTES
+
+
+def test_image_request_uses_the_confirmed_contract_fields(
+    fake_urlopen, with_key, png_file
+) -> None:
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    _backend(enable_thinking=True, model_name="ZDTaichu5.0-9B", max_new_tokens=256).generate_image(
+        str(png_file), _INSTRUCTION
+    )
+    payload = _image_payload(opener)
+
+    assert payload["stream"] is False
+    assert payload["max_tokens"] == 256
+    assert payload["temperature"] == 0.0
+    assert payload["enable_thinking"] is True
+    assert payload["model"] == "ZDTaichu5.0-9B"
+    assert set(payload["messages"][0]) == {"role", "content"}
+
+
+def test_image_request_sends_no_image_url_over_the_network(
+    fake_urlopen, with_key, png_file
+) -> None:
+    """The server must never be handed a URL it would fetch itself."""
+
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    _backend().generate_image(str(png_file), _INSTRUCTION)
+
+    url = _image_payload(opener)["messages"][0]["content"][0]["image_url"]["url"]
+    assert url.startswith("data:")
+    assert "http://" not in url and "https://" not in url
+    # A bare path would make ``load_image`` read from the server's filesystem.
+    assert not url.startswith("/")
+
+
+def test_image_request_keeps_the_credential_rules(fake_urlopen, monkeypatch, png_file) -> None:
+    monkeypatch.delenv(_ENV, raising=False)
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    raw = _backend().generate_image(str(png_file), _INSTRUCTION)
+
+    assert raw == _VALID_TEXT
+    assert _auth_header_of(opener.calls[0]["request"]) is None
+
+
+def test_image_output_is_handed_to_the_existing_chain(
+    fake_urlopen, with_key, png_file
+) -> None:
+    """One image round reuses the text chain unchanged: raw text -> AgentIntent."""
+
+    fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    raw = _backend().generate_image(str(png_file), _INSTRUCTION)
+
+    intent = parse_model_output(raw)
+    assert intent.action == "parking.move"
+    assert intent.target.y == -2.25
+    assert json.loads(intent.to_payload())["target"].keys() == {"x", "y", "heading"}
+
+
+def test_a_thinking_prefixed_image_answer_is_not_repaired(
+    fake_urlopen, with_key, png_file
+) -> None:
+    fake_urlopen(
+        result=_Response(_chat_response("<think>\nlooking\n</think>\n" + _VALID_TEXT))
+    )
+    raw = _backend().generate_image(str(png_file), _INSTRUCTION)
+    with pytest.raises(ModelOutputParseError):
+        parse_model_output(raw)
+    assert raw.startswith("<think>")
+
+
+def test_a_non_json_image_answer_fails_the_parse_boundary(
+    fake_urlopen, with_key, png_file
+) -> None:
+    fake_urlopen(result=_Response(_chat_response("I cannot see slot P07 in this image.")))
+    raw = _backend().generate_image(str(png_file), _INSTRUCTION)
+    assert raw == "I cannot see slot P07 in this image."
+    with pytest.raises(ModelOutputParseError):
+        parse_model_output(raw)
+
+
+def test_an_empty_image_answer_parses_to_nothing_rather_than_being_invented(
+    fake_urlopen, with_key, png_file
+) -> None:
+    """The model's explicit abstention stays an empty string, never a target."""
+
+    fake_urlopen(result=_Response(_chat_response("")))
+    raw = _backend().generate_image(str(png_file), _INSTRUCTION)
+    assert raw == ""
+    with pytest.raises(ModelOutputParseError):
+        parse_model_output(raw)
+
+
+def test_missing_image_file_fails_before_any_request(fake_urlopen, with_key, tmp_path) -> None:
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    with pytest.raises(ImageInputError, match="does not exist"):
+        _backend().generate_image(str(tmp_path / "absent.png"), _INSTRUCTION)
+    assert opener.calls == []
+
+
+def test_unsupported_image_file_fails_before_any_request(
+    fake_urlopen, with_key, tmp_path
+) -> None:
+    path = tmp_path / "notes.png"  # the name lies; the content decides
+    path.write_bytes(b"this is not an image")
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    with pytest.raises(UnsupportedImageFormatError):
+        _backend().generate_image(str(path), _INSTRUCTION)
+    assert opener.calls == []
+
+
+def test_blank_instruction_fails_before_any_request(fake_urlopen, with_key, png_file) -> None:
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    with pytest.raises(UnsupportedServerInputError, match="non-blank str"):
+        _backend().generate_image(str(png_file), "   ")
+    assert opener.calls == []
+
+
+def test_image_http_error_fails_closed_with_one_attempt(fake_urlopen, with_key, png_file) -> None:
+    from urllib.error import HTTPError
+
+    opener = fake_urlopen(
+        error=HTTPError(
+            "http://127.0.0.1:8100/v1/chat/completions",
+            400,
+            "Bad Request",
+            {},
+            None,
+        )
+    )
+    with pytest.raises(ServerClientError, match="HTTP 400"):
+        _backend().generate_image(str(png_file), _INSTRUCTION)
+    assert len(opener.calls) == 1
+
+
+def test_image_timeout_fails_closed_with_one_attempt(fake_urlopen, with_key, png_file) -> None:
+    opener = fake_urlopen(error=TimeoutError("timed out"))
+    with pytest.raises(ServerClientError, match="timed out"):
+        _backend().generate_image(str(png_file), _INSTRUCTION)
+    assert len(opener.calls) == 1
+
+
+def test_malformed_image_responses_fail_closed(fake_urlopen, with_key, png_file) -> None:
+    opener = fake_urlopen(result=_Response(b'{"choices":[{"message":{"content":7}}]}'))
+    with pytest.raises(ServerClientError, match="expected str"):
+        _backend().generate_image(str(png_file), _INSTRUCTION)
+    assert len(opener.calls) == 1
+
+
+def test_image_errors_never_leak_the_credential(fake_urlopen, with_key, png_file) -> None:
+    from urllib.error import HTTPError
+
+    fake_urlopen(
+        error=HTTPError(
+            "http://127.0.0.1:8100/v1/chat/completions", 401, "Unauthorized", {}, None
+        )
+    )
+    with pytest.raises(ModelCallError) as excinfo:
+        _backend().generate_image(str(png_file), _INSTRUCTION)
+
+    rendered = f"{excinfo.value!r} {excinfo.value} {excinfo.value.args!r}"
+    assert _FAKE_KEY not in rendered
+    assert "Bearer" not in rendered
+
+
+def test_image_request_still_posts_to_the_confirmed_endpoint(
+    fake_urlopen, with_key, png_file
+) -> None:
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    _backend().generate_image(str(png_file), _INSTRUCTION)
+
+    request = opener.calls[0]["request"]
+    assert request.get_full_url() == "http://127.0.0.1:8100/v1/chat/completions"
+    assert request.get_method() == "POST"
+
+
+def test_image_request_is_refused_by_an_unconfirmed_endpoint(
+    fake_urlopen, with_key, png_file
+) -> None:
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    with pytest.raises(UntrustedEndpointError):
+        ZDTaichuServerBackend(base_url="http://192.168.1.10:8100").generate_image(
+            str(png_file), _INSTRUCTION
+        )
+    assert opener.calls == []
+
+
+def test_the_text_path_still_refuses_in_memory_images(fake_urlopen, with_key, png_file) -> None:
+    """Adding the image entry point must not loosen the text entry point."""
+
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    with pytest.raises(UnsupportedServerInputError):
+        _backend().generate(PreparedObservation(text="scene", images=(object(),)), "park")
+    assert opener.calls == []
+
+
+def test_the_four_repository_images_are_all_loadable() -> None:
+    """The owner-supplied frames this entry point exists to send."""
+
+    images = sorted((Path(__file__).resolve().parents[2] / "images").glob("*.png"))
+    assert len(images) == 4
+    for path in images:
+        part = load_image_part(path)
+        assert part.media_type == "image/png"
+        assert part.content_part()["image_url"]["url"].startswith("data:image/png;base64,")

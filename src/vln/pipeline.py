@@ -160,6 +160,7 @@ def run_parking_loop(
     request_id_factory: Callable[[int], str],
     max_rounds: int = DEFAULT_MAX_ROUNDS,
     request_builder: Callable[..., Request] = build_request,
+    round_executor: Optional[Callable[[str, int], Response]] = None,
 ) -> ParkingLoopResult:
     """Run parking rounds until an explicit terminal condition, and stop.
 
@@ -169,6 +170,16 @@ def run_parking_loop(
     ``HostClient.send``. The loop adds only *iteration*, the feedback hand-off
     and the stop rules - it re-implements no validation and invents no protocol
     field.
+
+    ``round_executor`` is an optional hook for a different validated decision
+    path (NAV-11A uses the NAV-09/NAV-10 chain). It receives the raw model text
+    and the round index, performs its own validated execution, and returns the
+    real :class:`Response`. When supplied, the default ``parse_model_output``
+    and request-builder path is not used; the executor owns the round's IDs and
+    host call. It must raise an :class:`AgentIntentError` for a refused decision
+    (the loop then stops with :data:`LoopStopReason.INVALID_OUTPUT`); a
+    non-success Response stops with :data:`LoopStopReason.EXECUTION_FAILED` as
+    usual. Transport errors and model errors propagate unchanged.
 
     Feedback hand-off: the ``observation`` given to a round is the initial
     ``observation`` for round 0, and the previous round's real :class:`Response`
@@ -214,17 +225,29 @@ def run_parking_loop(
         if type(raw_text) is str and raw_text.strip() == "":
             return ParkingLoopResult(tuple(responses), LoopStopReason.MODEL_STOP)
 
-        try:
-            intent: AgentIntent = parse_model_output(raw_text)
-        except AgentIntentError:
-            return ParkingLoopResult(tuple(responses), LoopStopReason.INVALID_OUTPUT)
+        if round_executor is None:
+            try:
+                intent: AgentIntent = parse_model_output(raw_text)
+            except AgentIntentError:
+                return ParkingLoopResult(
+                    tuple(responses), LoopStopReason.INVALID_OUTPUT
+                )
 
-        request = request_builder(
-            intent, request_id=request_id_factory(round_index)
-        )
+            request = request_builder(
+                intent, request_id=request_id_factory(round_index)
+            )
 
-        with host_client_factory() as client:
-            response = client.send(request)
+            with host_client_factory() as client:
+                response = client.send(request)
+        else:
+            try:
+                response = round_executor(raw_text, round_index)
+            except AgentIntentError:
+                # The injected decision layer refused the model text before any
+                # host work; mirror the default path's INVALID_OUTPUT stop.
+                return ParkingLoopResult(
+                    tuple(responses), LoopStopReason.INVALID_OUTPUT
+                )
         responses.append(response)
 
         if not response.ok:

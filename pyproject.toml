@@ -15,7 +15,7 @@ dev = ["pytest>=8"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
-packages = ["vln", "vln.ipc", "vln.client", "vln.intent", "vln.vlm"]
+packages = ["vln", "vln.ipc", "vln.client", "vln.intent", "vln.nav", "vln.planning_ltm", "vln.vlm"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
