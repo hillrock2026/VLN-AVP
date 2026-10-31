@@ -47,6 +47,13 @@
 #include <agent_kernel/agent/runtime/runtime_observation.hpp>
 #include <agent_kernel/agent/runtime/runtime_submission_result.hpp>
 
+namespace ak {
+
+// Forward declaration only (no Session header dependency in this adapter).
+class Session;
+
+}  // namespace ak
+
 namespace ak::runtime {
 
 // Forward declaration only: no Runtime internal type is exposed
@@ -69,6 +76,15 @@ public:
     // Non-owning Runtime reference; Runtime MUST outlive the
     // adapter (TASK 3.1 §13 API table).
     explicit RuntimePublicApiAdapter(ak::runtime::Runtime& runtime) noexcept;
+
+    // Persistent-Session mode: each Submit creates one new Workflow/Task in
+    // the supplied Kernel Session and runs only that Workflow. The Session is
+    // left Ready when keep_session_active is true so a later Submit can add
+    // another Workflow/Task to the same Session. The Session MUST outlive the
+    // adapter.
+    RuntimePublicApiAdapter(ak::runtime::Runtime& runtime,
+                            ak::Session& persistent_session,
+                            bool keep_session_active) noexcept;
 
     // Registers a capability that Submit() bootstraps onto the
     // Runtime before its first invocation (TASK 3.1 §17). The
@@ -96,6 +112,10 @@ private:
     };
 
     ak::runtime::Runtime& runtime_;
+
+    // Non-owning persistent Session (nullptr = original one-shot mode).
+    ak::Session* persistent_session_ = nullptr;
+    bool keep_session_active_ = false;
 
     // Adapter-owned bootstrap capability table: capability_id ->
     // registered executable capability (never a Runtime registry).

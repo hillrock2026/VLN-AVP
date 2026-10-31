@@ -1,0 +1,120 @@
+{
+  "state": {
+    "x": -3.9008,
+    "y": -17.1958,
+    "z": 5.7909,
+    "yaw_deg": -86.5541,
+    "yaw_rad": -1.510654,
+    "pitch": 0.2973,
+    "roll": 0.0378,
+    "speed": 0.0,
+    "frame": 11614106,
+    "sim_time": 3117.2616
+  },
+  "stability_samples": [
+    {
+      "x": -3.9008,
+      "y": -17.1958,
+      "speed": 0.0
+    },
+    {
+      "x": -3.9008,
+      "y": -17.1958,
+      "speed": 0.0
+    },
+    {
+      "x": -3.9008,
+      "y": -17.1958,
+      "speed": 0.0
+    },
+    {
+      "x": -3.9008,
+      "y": -17.1958,
+      "speed": 0.0
+    },
+    {
+      "x": -3.9008,
+      "y": -17.1958,
+      "speed": 0.0
+    }
+  ],
+  "measurement": {
+    "x": -3.9008,
+    "y": -17.1958,
+    "yaw_rad": -1.510654,
+    "yaw_deg": -86.5541,
+    "speed_mps": 0.0,
+    "stopped": true,
+    "lateral_error_m": 0.0992,
+    "heading_error_deg": 3.4459,
+    "longitudinal_error_m": -0.0058,
+    "standoff_m": 0.5442,
+    "boundary_clearance_m": 0.139,
+    "obstacle_clearance_m": 2.072,
+    "reference_inside_bay": false,
+    "inside_allowed_region": true,
+    "stability": {
+      "samples": 5,
+      "max_speed_mps": 0.0,
+      "position_drift_m": 0.0,
+      "stable": true
+    }
+  },
+  "verification": {
+    "schema": "vln.parking.alignment_result.v1",
+    "skill": "vln.parking.alignment",
+    "stage": "ALIGNMENT_PENDING",
+    "task_id": "cap07b-03",
+    "target_id": "bay03",
+    "bay_id": "bay03",
+    "slot_node_id": "park_slot",
+    "approach_node_id": "park_entry",
+    "alignment_valid": false,
+    "completed": false,
+    "identity_verified": true,
+    "checks": {
+      "target_identity_matches_binding": true,
+      "target_geometry_valid": true,
+      "vehicle_state_valid": true,
+      "inside_allowed_region": true,
+      "reference_not_inside_bay": true,
+      "lateral_within_tolerance": true,
+      "heading_within_tolerance": false,
+      "longitudinal_within_tolerance": true,
+      "boundary_clearance": true,
+      "obstacle_clearance": true,
+      "stopped": true,
+      "stop_stable": true,
+      "no_collision": true
+    },
+    "reasons": [
+      "heading_within_tolerance"
+    ],
+    "measurement": {
+      "x": -3.9008,
+      "y": -17.1958,
+      "yaw_rad": -1.510654,
+      "yaw_deg": -86.5541,
+      "speed_mps": 0.0,
+      "stopped": true,
+      "lateral_error_m": 0.0992,
+      "heading_error_deg": 3.4459,
+      "longitudinal_error_m": -0.0058,
+      "standoff_m": 0.5442,
+      "boundary_clearance_m": 0.139,
+      "obstacle_clearance_m": 2.072,
+      "reference_inside_bay": false,
+      "inside_allowed_region": true,
+      "stability": {
+        "samples": 5,
+        "max_speed_mps": 0.0,
+        "position_drift_m": 0.0,
+        "stable": true
+      }
+    },
+    "stage_history": [
+      "ALIGNMENT_PENDING",
+      "ALIGNMENT_PENDING"
+    ]
+  }
+}

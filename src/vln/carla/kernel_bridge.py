@@ -160,6 +160,24 @@ class CarlaExecutionBridge:
 
     # -- lifecycle ------------------------------------------------------
 
+    def set_handler(self, handler: Callable[[ExecutionPermit], Mapping[str, Any]]) -> None:
+        """Select the stage handler for the next single-use permit.
+
+        The session driver reuses one bridge across navigation, alignment and
+        Entry; each stage registers its own permits and installs its handler
+        before submitting. Changing the handler while an execution is in
+        flight is refused.
+        """
+
+        if not callable(handler):
+            raise TypeError("handler must be callable")
+        with self._lock:
+            if self._executing:
+                raise KernelBridgeError(
+                    "cannot change the bridge handler while executing"
+                )
+            self._handler = handler
+
     def start(self) -> "CarlaExecutionBridge":
         if self._server is not None:
             return self

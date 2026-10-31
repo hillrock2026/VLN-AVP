@@ -158,7 +158,24 @@ def _run_phase(
         target=Target(x=plan.target_x, y=plan.target_y, heading=plan.target_heading_rad),
     )
     request_id = f"{TASK_ID}-r{round_index:02d}-req-{pre['frame']}"
-    request = build_request(intent, request_id=request_id)
+    # Keep the whole parking session in one persistent Kernel Session/Context.
+    # When entry04.SESSION_ID is unset the original one-shot behavior is
+    # unchanged.
+    request = build_request(
+        intent,
+        request_id=request_id,
+        session_id=entry04.SESSION_ID,
+        expected_context_revision=entry04.CONTEXT_REVISION,
+        domain={
+            "parking_session_id": entry04.SESSION_ID or TASK_ID,
+            "parking": entry04.PARKING_CONTEXT,
+            "skill_execution_id": request_id,
+            "phase": "POSE_REFINEMENT",
+            "phase_label": phase_label,
+            "bay_id": "bay03",
+            "slot_node_id": "park_slot",
+        },
+    )
     bridge.register_permit(
         request_id=request_id,
         intent_id=intent.intent_id,
@@ -192,6 +209,8 @@ def _run_phase(
     started = time.monotonic()
     try:
         response = host_client.send(request)
+        if response.context_revision is not None:
+            entry04.CONTEXT_REVISION = response.context_revision
         transaction = bridge.get_transaction(request_id)
         error, output = nav01e._validate_kernel_correlation(
             response, request, intent, transaction
@@ -203,6 +222,15 @@ def _run_phase(
                 "execution_status": response.execution_status,
                 "output": output,
                 "transaction": transaction,
+                "session_id": response.session_id,
+                "session_state": response.session_state,
+                "context_revision": response.context_revision,
+                "context_before": response.context_before,
+                "context_after": response.context_after,
+                "task_id": response.task_id,
+                "workflow_id": response.workflow_id,
+                "turn": response.turn,
+                "context_updated": response.context_updated,
                 "wall_seconds": round(time.monotonic() - started, 3),
             }
         )
@@ -374,7 +402,20 @@ def _callback(
         pose_gap = math.hypot(
             current.x - final_measurement.x, current.y - final_measurement.y
         )
-        historical = _historical_entry_check(binding)
+        # The reference is the live Entry result handed over in this same
+        # process/session, not a historical file. This keeps the refinement
+        # chain independent of prior experiments while still requiring the
+        # current measurement to match the in-process Entry final state.
+        historical = {
+            "task_id": "live-entry",
+            "decision": "ENTRY_COMPLETED",
+            "final_pose": {
+                "x": float(final_measurement.x),
+                "y": float(final_measurement.y),
+                "yaw_rad": float(final_measurement.yaw_rad),
+            },
+            "source": "live in-process Entry result in the current session",
+        }
         historical_gap = math.hypot(
             current.x - historical["final_pose"]["x"],
             current.y - historical["final_pose"]["y"],

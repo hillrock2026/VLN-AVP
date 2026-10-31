@@ -1,0 +1,204 @@
+{
+  "round_index": 0,
+  "timestamp": "2026-10-31T07:17:42.038506+00:00",
+  "instruction": "请将车辆停入左侧靠近出口的空闲车位",
+  "request": {
+    "raw": "请将车辆停入左侧靠近出口的空闲车位",
+    "target_kind": "车位",
+    "occupancy": "vacant",
+    "side": "LEFT",
+    "landmark": "near_exit",
+    "landmark_verified": false,
+    "notes": [
+      "landmark near_exit is advisory only: no verified exit anchor exists"
+    ]
+  },
+  "camera": {
+    "actor_id": 789,
+    "role_name": "vln_cap07a_bind_cam",
+    "fov": 110.0,
+    "width": 1280,
+    "height": 720,
+    "image_frame": 11591199,
+    "local_offset": [
+      2.4,
+      0.0,
+      1.6
+    ],
+    "local_pitch": -12.0,
+    "local_yaw": -40.0,
+    "world_transform": {
+      "x": -5.3104,
+      "y": -8.3227,
+      "z": 7.385,
+      "pitch": -12.0,
+      "yaw": -57.526,
+      "roll": 0.0
+    },
+    "raw_png": "docs/evidence/vln-avp-cap-08c-02-preflight-binding/round_00_raw_11591199.png",
+    "raw_png_sha256": "f6d626171efa6cb8b6a33253931fba9390046626b3e5fa3e36709be6d54c9a34"
+  },
+  "ego_pose": {
+    "x": -7.599,
+    "y": -7.6,
+    "z": 5.785,
+    "yaw": -17.526,
+    "pitch": 0.0,
+    "roll": 0.0
+  },
+  "label_order": "near_to_far",
+  "projected": [
+    {
+      "bay_id": "bay03",
+      "slot_node_id": "park_slot",
+      "label": "",
+      "visible_corners": 2,
+      "all_in_frame": false,
+      "side": "LEFT",
+      "bearing_deg": -80.466,
+      "distance_m": 13.485,
+      "corners": [
+        [
+          423.501,
+          334.332
+        ],
+        [
+          -578.268,
+          408.778
+        ],
+        [
+          -311.571,
+          367.326
+        ],
+        [
+          411.238,
+          322.966
+        ]
+      ],
+      "center_image": [
+        -13.775,
+        358.35
+      ]
+    },
+    {
+      "bay_id": "bay11",
+      "slot_node_id": "bay11_slot",
+      "label": "",
+      "visible_corners": 2,
+      "all_in_frame": false,
+      "side": "LEFT",
+      "bearing_deg": -85.023,
+      "distance_m": 8.869,
+      "corners": [
+        [
+          471.594,
+          378.905
+        ],
+        [
+          -4482.619,
+          1015.613
+        ],
+        [
+          -1206.662,
+          506.446
+        ],
+        [
+          441.714,
+          351.212
+        ]
+      ],
+      "center_image": [
+        -1193.993,
+        563.044
+      ]
+    }
+  ],
+  "visible_labels": [],
+  "overlay_png": null,
+  "overlay_png_sha256": null,
+  "prompt": null,
+  "model_text": null,
+  "parse": {
+    "ok": true,
+    "skipped": "no candidate is fully visible; no model request"
+  },
+  "binding": {
+    "schema": "vln.parking_target_binding.v1",
+    "status": "temporarily_not_visible",
+    "instruction": "请将车辆停入左侧靠近出口的空闲车位",
+    "round_index": 0,
+    "bay_id": null,
+    "slot_node_id": null,
+    "selected_label": null,
+    "prior_bay_id": null,
+    "reason": "no known bay is fully visible in the current frame",
+    "executable": false,
+    "candidates": [
+      {
+        "label": "",
+        "bay_id": "bay03",
+        "slot_node_id": "park_slot",
+        "occupancy": "unknown",
+        "visible": false,
+        "side": "LEFT",
+        "bearing_deg": -80.466,
+        "distance_m": 13.485,
+        "image_bbox": null
+      },
+      {
+        "label": "",
+        "bay_id": "bay11",
+        "slot_node_id": "bay11_slot",
+        "occupancy": "unknown",
+        "visible": false,
+        "side": "LEFT",
+        "bearing_deg": -85.023,
+        "distance_m": 8.869,
+        "image_bbox": null
+      }
+    ],
+    "evidence": {
+      "request": {
+        "raw": "请将车辆停入左侧靠近出口的空闲车位",
+        "target_kind": "车位",
+        "occupancy": "vacant",
+        "side": "LEFT",
+        "landmark": "near_exit",
+        "landmark_verified": false,
+        "notes": [
+          "landmark near_exit is advisory only: no verified exit anchor exists"
+        ]
+      },
+      "visible_labels": [],
+      "selected": null,
+      "model_occupancy_answers": {},
+      "landmark_used": false,
+      "landmark_verified": false,
+      "candidate_table": [
+        {
+          "label": "",
+          "bay_id": "bay03",
+          "slot_node_id": "park_slot",
+          "occupancy": "unknown",
+          "visible": false,
+          "side": "LEFT",
+          "bearing_deg": -80.466,
+          "distance_m": 13.485,
+          "image_bbox": null
+        },
+        {
+          "label": "",
+          "bay_id": "bay11",
+          "slot_node_id": "bay11_slot",
+          "occupancy": "unknown",
+          "visible": false,
+          "side": "LEFT",
+          "bearing_deg": -85.023,
+          "distance_m": 8.869,
+          "image_bbox": null
+        }
+      ]
+    }
+  },
+  "model_error": null
+}

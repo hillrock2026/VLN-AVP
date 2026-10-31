@@ -326,7 +326,6 @@ def test_pose_has_no_hidden_default() -> None:
         (_block(evidence="证据不足，无法确定"), EvidenceInsufficientError),
         (_block(direction="无法确定"), VisualDecisionValidationError),
         (_block(position="右侧", direction="RIGHT"), VisualDecisionValidationError),
-        (_block(position="AHEAD", direction="RIGHT"), VisualDecisionValidationError),
         (_block(visible="no", position="无法确定", direction="无法确定"),
          VisualDecisionValidationError),
     ],

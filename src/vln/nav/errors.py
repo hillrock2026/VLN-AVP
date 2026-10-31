@@ -58,9 +58,11 @@ class VisualDecisionParseError(NavigationDecisionError):
 class VisualDecisionValidationError(NavigationDecisionError):
     """A well-formed block whose values cannot authorise a navigation intent.
 
-    Raised for an off-vocabulary token (including ``无法确定``), a missing or
-    unusable discrete direction, or a self-contradictory answer where the
-    relative position and the discrete direction disagree.
+    Raised for an off-vocabulary token (including ``无法确定``) or a missing or
+    unusable discrete direction. Relative position and next direction are
+    independent axes; a position/action difference is not raised here. The route
+    action is checked against the real reachable candidates by route
+    arbitration.
     """
 
 

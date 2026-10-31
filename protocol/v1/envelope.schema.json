@@ -32,6 +32,22 @@
           "minLength": 1,
           "pattern": "\\S",
           "maxLength": 1048576
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "\\S",
+          "description": "Optional persistent Kernel Session id."
+        },
+        "expected_context_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional expected Session Context revision; a mismatch is rejected before execution."
+        },
+        "domain": {
+          "type": "object",
+          "description": "Optional VLN-AVP domain extension stored in the Kernel Context."
         }
       }
     },
@@ -78,7 +94,28 @@
               }
             }
           ]
-        }
+        },
+        "session_id": { "type": ["string", "null"] },
+        "session_state": { "type": ["string", "null"] },
+        "task_id": { "type": ["string", "null"] },
+        "workflow_id": { "type": ["string", "null"] },
+        "context_revision": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "context_before": {
+          "type": ["object", "null"],
+          "description": "Session Context snapshot read before this execution."
+        },
+        "context_after": {
+          "type": ["object", "null"],
+          "description": "Session Context snapshot after this execution."
+        },
+        "turn": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "context_updated": { "type": ["boolean", "null"] }
       }
     }
   }

@@ -1,0 +1,237 @@
+{
+  "round_index": 0,
+  "timestamp": "2026-10-31T08:15:04.766776+00:00",
+  "instruction": "请将车辆停入左侧靠近出口的空闲车位",
+  "request": {
+    "raw": "请将车辆停入左侧靠近出口的空闲车位",
+    "target_kind": "车位",
+    "occupancy": "vacant",
+    "side": "LEFT",
+    "landmark": "near_exit",
+    "landmark_verified": false,
+    "notes": [
+      "landmark near_exit is advisory only: no verified exit anchor exists"
+    ]
+  },
+  "camera": {
+    "actor_id": 838,
+    "role_name": "vln_cap07a_bind_cam",
+    "fov": 100.0,
+    "width": 1280,
+    "height": 720,
+    "image_frame": 11960220,
+    "local_offset": [
+      0.0,
+      3.0,
+      2.0
+    ],
+    "local_pitch": -15.0,
+    "local_yaw": -55.0,
+    "world_transform": {
+      "x": -2.2036,
+      "y": -9.1179,
+      "z": 7.7846,
+      "pitch": -14.8792,
+      "yaw": -129.9558,
+      "roll": -0.172
+    },
+    "raw_png": "docs/evidence/vln-avp-cap-08c-02-preflight-binding5/v_left2_raw_11960220.png",
+    "raw_png_sha256": "69d2dcdf1539cc86fb93d62ae85d06c5150d2a54ba8efc60fdc2c820c7b5307a"
+  },
+  "ego_pose": {
+    "x": -5.0997,
+    "y": -9.9013,
+    "z": 5.7848,
+    "yaw": -75.0001,
+    "pitch": 0.2054,
+    "roll": 0.0036
+  },
+  "label_order": "near_to_far",
+  "projected": [
+    {
+      "bay_id": "bay03",
+      "slot_node_id": "park_slot",
+      "label": "B",
+      "visible_corners": 4,
+      "all_in_frame": true,
+      "side": "LEFT",
+      "bearing_deg": -36.382,
+      "distance_m": 14.063,
+      "corners": [
+        [
+          949.547,
+          332.297
+        ],
+        [
+          558.51,
+          286.899
+        ],
+        [
+          615.01,
+          279.562
+        ],
+        [
+          974.68,
+          313.493
+        ]
+      ],
+      "center_image": [
+        774.437,
+        303.063
+      ]
+    },
+    {
+      "bay_id": "bay11",
+      "slot_node_id": "bay11_slot",
+      "label": "A",
+      "visible_corners": 4,
+      "all_in_frame": true,
+      "side": "LEFT",
+      "bearing_deg": -50.196,
+      "distance_m": 10.127,
+      "corners": [
+        [
+          851.991,
+          405.288
+        ],
+        [
+          394.716,
+          308.169
+        ],
+        [
+          487.285,
+          296.148
+        ],
+        [
+          912.414,
+          360.08
+        ]
+      ],
+      "center_image": [
+        661.602,
+        342.421
+      ]
+    }
+  ],
+  "visible_labels": [
+    "A",
+    "B"
+  ],
+  "overlay_png": "docs/evidence/vln-avp-cap-08c-02-preflight-binding5/v_left2_overlay_11960220.png",
+  "overlay_png_sha256": "ea0a21597db8f9bee01073c528b7d92fd83d6dc6abd45eea0421b2bbefb4ab93",
+  "prompt": "请只依据这张停车场图像作答，不要推测画面之外的信息。\n图像中已经用彩色线框圈出候选车位，并在每个候选区域上标有一个大写字母。\n本次任务：请将车辆停入左侧靠近出口的空闲车位\n\n请逐个判断每个候选车位的占用情况。判断规则：\n1. 只有车位区域内确实能看到停放车辆时，才写「占用」。\n2. 只有车位区域内没有车辆、地面确实可见时，才写「空闲」。\n3. 车位被遮挡、看不清或无法确认时，写「无法确定」；不得把无法确定当作空闲。\n4. 只能使用图像中的候选字母，不要输出坐标、车位编号、x/y 数值或 JSON。\n5. 不要照抄本指令中的句子作为答案，不要因为任务里提到「空闲」就假定车位空闲。\n\n候选字母为：A、B。\n请按下面两段输出，每行一个字段，不要输出其他内容：\n第一段：对每个候选字母各写一行，格式为「候选字母: 判断结果」；判断结果只能从 空闲、占用、无法确定 中选择。\n第二段：写一行 Selected: 你选择的候选字母；如果无法确定，写「无法确定」。不得选择候选字母之外的任何内容。\n",
+  "model_text": "A: 占用\nB: 空闲\nSelected: B",
+  "parse": {
+    "ok": true,
+    "occupancies": {
+      "A": "occupied",
+      "B": "vacant"
+    },
+    "selected": "B"
+  },
+  "binding": {
+    "schema": "vln.parking_target_binding.v1",
+    "status": "bound",
+    "instruction": "请将车辆停入左侧靠近出口的空闲车位",
+    "round_index": 0,
+    "bay_id": "bay03",
+    "slot_node_id": "park_slot",
+    "selected_label": "B",
+    "prior_bay_id": null,
+    "reason": "unique visible vacant candidate on the requested side",
+    "executable": true,
+    "candidates": [
+      {
+        "label": "B",
+        "bay_id": "bay03",
+        "slot_node_id": "park_slot",
+        "occupancy": "vacant",
+        "visible": true,
+        "side": "LEFT",
+        "bearing_deg": -36.382,
+        "distance_m": 14.063,
+        "image_bbox": [
+          558.51,
+          279.56,
+          974.68,
+          332.3
+        ]
+      },
+      {
+        "label": "A",
+        "bay_id": "bay11",
+        "slot_node_id": "bay11_slot",
+        "occupancy": "occupied",
+        "visible": true,
+        "side": "LEFT",
+        "bearing_deg": -50.196,
+        "distance_m": 10.127,
+        "image_bbox": [
+          394.72,
+          296.15,
+          912.41,
+          405.29
+        ]
+      }
+    ],
+    "evidence": {
+      "request": {
+        "raw": "请将车辆停入左侧靠近出口的空闲车位",
+        "target_kind": "车位",
+        "occupancy": "vacant",
+        "side": "LEFT",
+        "landmark": "near_exit",
+        "landmark_verified": false,
+        "notes": [
+          "landmark near_exit is advisory only: no verified exit anchor exists"
+        ]
+      },
+      "visible_labels": [
+        "B",
+        "A"
+      ],
+      "selected": "B",
+      "model_occupancy_answers": {
+        "A": "occupied",
+        "B": "vacant"
+      },
+      "landmark_used": false,
+      "landmark_verified": false,
+      "candidate_table": [
+        {
+          "label": "B",
+          "bay_id": "bay03",
+          "slot_node_id": "park_slot",
+          "occupancy": "vacant",
+          "visible": true,
+          "side": "LEFT",
+          "bearing_deg": -36.382,
+          "distance_m": 14.063,
+          "image_bbox": [
+            558.51,
+            279.56,
+            974.68,
+            332.3
+          ]
+        },
+        {
+          "label": "A",
+          "bay_id": "bay11",
+          "slot_node_id": "bay11_slot",
+          "occupancy": "occupied",
+          "visible": true,
+          "side": "LEFT",
+          "bearing_deg": -50.196,
+          "distance_m": 10.127,
+          "image_bbox": [
+            394.72,
+            296.15,
+            912.41,
+            405.29
+          ]
+        }
+      ]
+    }
+  },
+  "model_error": null
+}

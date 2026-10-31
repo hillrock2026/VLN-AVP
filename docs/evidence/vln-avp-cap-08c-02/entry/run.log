@@ -1,0 +1,29 @@
+{
+  "started_utc": "2026-10-31T07:29:07.367157+00:00",
+  "finished_utc": "2026-10-31T07:29:30.500981+00:00",
+  "status": "PASS",
+  "decision": "ENTRY_COMPLETED",
+  "entry_completed": true,
+  "parking_completed": false,
+  "error": null,
+  "rounds": 4,
+  "kernel_executions": 4,
+  "collision_events": 0,
+  "budget": {
+    "max_segments": 8,
+    "max_segment_distance_m": 4.2,
+    "max_total_distance_m": 15.0,
+    "max_segment_sim_seconds": 40.0,
+    "max_total_sim_seconds": 240.0,
+    "speed_cap_mps": 0.35,
+    "segments_used": 4,
+    "distance_used_m": 12.8149,
+    "sim_used_s": 73.35,
+    "remaining_distance_m": 2.1851,
+    "can_start_segment": true
+  },
+  "cleanup": {
+    "destroy_errors": [],
+    "leftover_vln_actors": 0
+  }
+}

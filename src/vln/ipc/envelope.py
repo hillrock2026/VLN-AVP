@@ -137,17 +137,29 @@ class Request:
     payload: str
     protocol_version: str = PROTOCOL_VERSION
     type: str = MESSAGE_SUBMIT
+    # Optional persistent-session extension fields. They are omitted from the
+    # wire object when None, so the original one-shot request is unchanged.
+    session_id: Optional[str] = None
+    expected_context_revision: Optional[int] = None
+    domain: Optional[Mapping[str, Any]] = None
 
     def to_object(self) -> dict:
         """Return the on-the-wire JSON object for this request."""
 
-        return {
+        obj = {
             "protocol_version": self.protocol_version,
             "request_id": self.request_id,
             "type": self.type,
             "capability_id": self.capability_id,
             "payload": self.payload,
         }
+        if self.session_id is not None:
+            obj["session_id"] = self.session_id
+        if self.expected_context_revision is not None:
+            obj["expected_context_revision"] = self.expected_context_revision
+        if self.domain is not None:
+            obj["domain"] = dict(self.domain)
+        return obj
 
     def to_line(self) -> str:
         """Return the compact single-line JSON encoding of this request."""
@@ -234,12 +246,52 @@ def validate_request_object(obj: Any) -> Request:
             ErrorCode.INVALID_FIELD, "payload must be non-empty and non-blank"
         )
 
+    session_id = obj.get("session_id")
+    if session_id is not None:
+        if not isinstance(session_id, str):
+            raise ProtocolViolation(
+                ErrorCode.INVALID_FIELD, "session_id must be a string"
+            )
+        if (
+            len(session_id) > MAX_REQUEST_ID_CHARS
+            or not is_non_blank(session_id)
+        ):
+            raise ProtocolViolation(
+                ErrorCode.INVALID_FIELD,
+                "session_id must be non-blank and no longer than "
+                f"{MAX_REQUEST_ID_CHARS} characters",
+            )
+
+    expected_context_revision = obj.get("expected_context_revision")
+    if expected_context_revision is not None:
+        if isinstance(expected_context_revision, bool) or not isinstance(
+            expected_context_revision, int
+        ):
+            raise ProtocolViolation(
+                ErrorCode.INVALID_FIELD,
+                "expected_context_revision must be a non-negative integer",
+            )
+        if expected_context_revision < 0:
+            raise ProtocolViolation(
+                ErrorCode.INVALID_FIELD,
+                "expected_context_revision must be non-negative",
+            )
+
+    domain = obj.get("domain")
+    if domain is not None and not isinstance(domain, Mapping):
+        raise ProtocolViolation(
+            ErrorCode.INVALID_FIELD, "domain must be a JSON object"
+        )
+
     return Request(
         request_id=request_id,
         capability_id=capability_id,
         payload=payload,
         protocol_version=version,
         type=message_type,
+        session_id=session_id,
+        expected_context_revision=expected_context_revision,
+        domain=dict(domain) if domain is not None else None,
     )
 
 
@@ -306,6 +358,16 @@ class Response:
     output: Optional[str]
     error: Optional[Mapping[str, str]]
     protocol_version: str = PROTOCOL_VERSION
+    # Optional persistent-session / Context extension fields.
+    session_id: Optional[str] = None
+    session_state: Optional[str] = None
+    task_id: Optional[str] = None
+    workflow_id: Optional[str] = None
+    context_revision: Optional[int] = None
+    context_before: Optional[Mapping[str, Any]] = None
+    context_after: Optional[Mapping[str, Any]] = None
+    turn: Optional[int] = None
+    context_updated: Optional[bool] = None
 
     @property
     def ok(self) -> bool:
@@ -432,6 +494,46 @@ def parse_response_line(text: str) -> Response:
         ):
             raise bad("response error must be null or {code, message} strings")
 
+    session_id = obj.get("session_id")
+    if session_id is not None and not isinstance(session_id, str):
+        raise bad("response session_id must be a string or null")
+
+    session_state = obj.get("session_state")
+    if session_state is not None and not isinstance(session_state, str):
+        raise bad("response session_state must be a string or null")
+
+    task_id = obj.get("task_id")
+    if task_id is not None and not isinstance(task_id, str):
+        raise bad("response task_id must be a string or null")
+
+    workflow_id = obj.get("workflow_id")
+    if workflow_id is not None and not isinstance(workflow_id, str):
+        raise bad("response workflow_id must be a string or null")
+
+    context_revision = obj.get("context_revision")
+    if context_revision is not None:
+        if isinstance(context_revision, bool) or not isinstance(
+            context_revision, int
+        ) or context_revision < 0:
+            raise bad("response context_revision must be a non-negative integer")
+
+    turn = obj.get("turn")
+    if turn is not None:
+        if isinstance(turn, bool) or not isinstance(turn, int) or turn < 0:
+            raise bad("response turn must be a non-negative integer")
+
+    context_before = obj.get("context_before")
+    if context_before is not None and not isinstance(context_before, Mapping):
+        raise bad("response context_before must be an object or null")
+
+    context_after = obj.get("context_after")
+    if context_after is not None and not isinstance(context_after, Mapping):
+        raise bad("response context_after must be an object or null")
+
+    context_updated = obj.get("context_updated")
+    if context_updated is not None and not isinstance(context_updated, bool):
+        raise bad("response context_updated must be a boolean or null")
+
     return Response(
         request_id=request_id,
         host_kind=obj["host_kind"],
@@ -442,6 +544,15 @@ def parse_response_line(text: str) -> Response:
         output=output,
         error=error,
         protocol_version=version,
+        session_id=session_id,
+        session_state=session_state,
+        task_id=task_id,
+        workflow_id=workflow_id,
+        context_revision=context_revision,
+        context_before=dict(context_before) if context_before is not None else None,
+        context_after=dict(context_after) if context_after is not None else None,
+        turn=turn,
+        context_updated=context_updated,
     )
 
 

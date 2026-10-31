@@ -1,0 +1,34 @@
+{
+  "schema": "vln.parking.entry_authorization.v1",
+  "skill": "vln.parking.autonomous",
+  "authorization_id": "43a15fc975b7b513b05b01dcc0969ab9d592194c629ed7db5e399819488469f6",
+  "task_id": "cap07b-02",
+  "target_id": "bay03",
+  "bay_id": "bay03",
+  "slot_node_id": "park_slot",
+  "approach_node_id": "park_entry",
+  "verification_status": "ENTRY_AUTHORIZED",
+  "target_confirmed": true,
+  "observation_ids": [
+    "attempt01_01_view_a",
+    "attempt01_02_view_b"
+  ],
+  "observation_image_hashes": [
+    "409d797500037c02ee9306311cd6bffe9153ce59db00d07f7f84860809b79a3e",
+    "56748f3d3f015d447250b06d87825ee05d63428049178547ae52005f8ce98f3f"
+  ],
+  "identity_verified": true,
+  "occupancy_verified": true,
+  "evidence_sufficient": true,
+  "decision": "ENTRY_AUTHORIZED",
+  "reason": "two independent close-range observations confirm the bound target is vacant and the vehicle is stopped",
+  "created_at": "2026-10-31T07:29:02.533039+00:00",
+  "stage_history": [
+    "APPROACH_COMPLETED",
+    "VERIFYING_TARGET",
+    "TARGET_CONFIRMED",
+    "ENTRY_AUTHORIZED"
+  ],
+  "permits_entry": true,
+  "executes_motion": false
+}

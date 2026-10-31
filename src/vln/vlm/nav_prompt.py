@@ -229,6 +229,9 @@ def _target_direction(
     target_note: str = "",
     require_identity: bool = False,
     require_evidence: bool = False,
+    route_context: str = "",
+    context_note: str = "",
+    clarify_decision_fields: bool = False,
 ) -> str:
     """The 07B prompt: identify a visible target and answer discretely.
 
@@ -258,6 +261,14 @@ def _target_direction(
     support the judgement, and ``Target`` is stated to be only the request echo,
     not proof that the target was seen. False by default, so every historical
     prompt (07B/07C/08A/11C) remains byte-identical.
+
+    ``route_context`` optionally adds a clearly labelled block of *route facts*
+    computed by the caller from the map and the real pose, plus a rule that the
+    visual ``Relative position`` and the discrete ``Next direction`` must both
+    be supported. Empty by default, so no historical prompt changes.
+    ``context_note`` is an optional caller-supplied sentence placed before the
+    route block (for example, stating that a re-decision uses the same frame);
+    it requires ``route_context``.
     """
 
     note = f"{target_note}\n" if target_note else ""
@@ -292,6 +303,43 @@ def _target_direction(
         evidence_line = "Evidence: 你据以判断的可见证据（一句话）\n"
         evidence_rule = ""
 
+    if route_context:
+        if type(route_context) is not str or route_context.strip() == "":
+            raise ValueError("route_context must be a non-blank str")
+        if type(context_note) is not str:
+            raise ValueError("context_note must be a str")
+        route_block = (
+            "\n补充上下文（路线事实，不是视觉观察）：\n"
+            + (context_note.rstrip() + "\n" if context_note else "")
+            + route_context.rstrip()
+            + "\n注意：以上路线事实由地图和当前真实位姿计算，只说明几何可行边，"
+            "不是从图像中看到的证据，也不能单独证明目标位于哪个方向。\n"
+        )
+        route_rule = (
+            "补充规则：Relative position 必须来自图像中目标的可视位置；"
+            "Next direction 必须来自图像证据和路线事实，并且只能是路线事实中"
+            "可到达目标的候选方向。Relative position 与 Next direction 可以不同"
+            "（目标在画面前方、下一步右转是合法的）。如果画面中出现多个同名目标标识，"
+            "请选择与当前可到达目标分支一致的标识作为关联证据；如果无法确定目标关联"
+            "或没有可到达候选，请把三个字段写为「无法确定」。不要为了匹配路线而编造"
+            "视觉证据，也不要选择路线事实中不可到达目标的方向。\n"
+        )
+    else:
+        route_block = ""
+        route_rule = ""
+
+    if clarify_decision_fields:
+        clarify_block = (
+            "\n补充规则（字段语义）：Relative position 只描述目标在画面中的位置；"
+            "Next direction 描述当前决策点下一段实际执行的路线动作。二者允许不同："
+            "例如目标在画面前方（AHEAD），但当前唯一可到达目标的候选边是右转（RIGHT），"
+            "应写 Relative position: AHEAD、Next direction: RIGHT。"
+            "请根据图像判断目标位置，并根据当前决策点可行驶且可到达目标的方向选择动作；"
+            f"若无法确定当前路口的可行驶动作，Next direction 写「{UNKNOWN_ANSWER}」。\n"
+        )
+    else:
+        clarify_block = ""
+
     return (
         "请仔细观察这张停车场图像，只依据画面中真实可见的内容作答。\n"
         + _EVIDENCE_BLOCK
@@ -301,6 +349,7 @@ def _target_direction(
         f"第二步 查找目标：本次要找的{target_kind}是 {target}。画面中是否真的出现了"
         f"「{target}」这个标识？如果出现，请说明它在画面中的大致位置和你能看到的视觉证据。\n"
         + note
+        + route_block
         + f"第三步 判断相对方位（仅当 {target} 确实可见时）：以当前视角看，{target} "
         "位于画面的左侧、右侧还是前方？\n"
         "第四步 给出下一步离散导航方向：从 LEFT、RIGHT、STRAIGHT 三个方向中选择一个；"
@@ -313,6 +362,7 @@ def _target_direction(
         f"Relative position: {' 或 '.join(POSITION_ANSWERS)}\n"
         f"Next direction: {' 或 '.join(DIRECTION_ANSWERS)}\n"
         + evidence_line
+        + clarify_block
         + "硬性规则：\n"
         f"1. 不得推测画面中看不到的信息，不得凭猜测补出{target_kind}。\n"
         f"2. 不得声称看到了 {target}，除非画面中确实出现了这个标识；"
@@ -323,6 +373,7 @@ def _target_direction(
         "5. 不要输出任何坐标数值，不要输出 x、y、heading，不要输出 JSON。\n"
         + identity_rule
         + evidence_rule
+        + route_rule
     )
 
 
@@ -343,6 +394,9 @@ def build_nav_prompt(
     target_note: str = "",
     require_identity: bool = False,
     require_evidence: bool = False,
+    route_context: str = "",
+    context_note: str = "",
+    clarify_decision_fields: bool = False,
 ) -> str:
     """Return the navigation prompt for ``variant``.
 
@@ -361,6 +415,17 @@ def build_nav_prompt(
     ``False`` by default. When true it adds the evidence-insufficiency rule that
     pairs with :func:`vln.nav.visual_decision.evidence_is_insufficient`; the
     historical prompts remain byte-identical.
+
+    ``route_context`` and ``context_note`` only affect
+    :data:`Variant.TARGET_DIRECTION` and are empty by default. They add the
+    optional route-fact block used by the one-shot intersection re-decision; an
+    empty value leaves every historical prompt byte-identical.
+
+    ``clarify_decision_fields`` only affects :data:`Variant.TARGET_DIRECTION`
+    and is ``False`` by default. When true it adds the field-semantics rule that
+    separates the target's visual position (``Relative position``) from the
+    next executable route direction (``Next direction``); historical prompts
+    remain byte-identical when it is omitted.
     """
 
     if variant == Variant.BASELINE:
@@ -382,6 +447,19 @@ def build_nav_prompt(
         raise ValueError("require_identity must be a bool")
     if type(require_evidence) is not bool:
         raise ValueError("require_evidence must be a bool")
+    if type(route_context) is not str:
+        raise ValueError("route_context must be a str")
+    if type(context_note) is not str:
+        raise ValueError("context_note must be a str")
+    if type(clarify_decision_fields) is not bool:
+        raise ValueError("clarify_decision_fields must be a bool")
+    if context_note and not route_context:
+        raise ValueError("context_note requires a non-empty route_context")
+    if (route_context or context_note) and builder is not _target_direction:
+        raise ValueError(
+            "route_context/context_note only apply to "
+            f"{Variant.TARGET_DIRECTION!r}"
+        )
     if builder is _target_direction:
         return builder(
             target,
@@ -390,6 +468,9 @@ def build_nav_prompt(
             target_note,
             require_identity,
             require_evidence,
+            route_context,
+            context_note,
+            clarify_decision_fields,
         )
     return builder(target, intent_id)
 

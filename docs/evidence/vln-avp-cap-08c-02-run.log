@@ -1,0 +1,144 @@
+WARNING: cannot parse georeference: ''. Using default values. 
+carla-bridge: listening on 127.0.0.1:43507 (token required)
+WARNING: cannot parse georeference: ''. Using default values. 
+carla-bridge: execution authorized request_id=carla-02-r01-req-11613857 intent_id=carla-01e-r1-f11613855
+carla-bridge: execution finished request_id=carla-02-r01-req-11613857 status=completed moved_m=3.712 stopped=True
+carla-bridge: execution authorized request_id=carla-02-r02-req-11613956 intent_id=carla-01e-r2-f11613954
+carla-bridge: execution finished request_id=carla-02-r02-req-11613956 status=completed moved_m=3.708 stopped=True
+carla-bridge: execution authorized request_id=cap07b-03-r01-req-11614106 intent_id=cap07b-03-r01-11614106
+carla-bridge: execution finished request_id=cap07b-03-r01-req-11614106 status=completed moved_m=1.308 stopped=True
+carla-bridge: execution authorized request_id=cap07b-03-r02-req-11614330 intent_id=cap07b-03-r02-11614330
+carla-bridge: execution finished request_id=cap07b-03-r02-req-11614330 status=completed moved_m=1.303 stopped=True
+carla-bridge: execution authorized request_id=cap07b-04-s01-req-11614666 intent_id=cap07b-04-s01-11614666
+carla-bridge: execution finished request_id=cap07b-04-s01-req-11614666 status=completed moved_m=3.918 stopped=True
+carla-bridge: execution authorized request_id=cap07b-04-s02-req-11614999 intent_id=cap07b-04-s02-11614999
+carla-bridge: execution finished request_id=cap07b-04-s02-req-11614999 status=completed moved_m=3.828 stopped=True
+carla-bridge: execution authorized request_id=cap07b-04-t03-req-11615337 intent_id=cap07b-04-t03-11615337
+carla-bridge: execution finished request_id=cap07b-04-t03-req-11615337 status=completed moved_m=2.401 stopped=True
+carla-bridge: execution authorized request_id=cap07b-04-t04-req-11615711 intent_id=cap07b-04-t04-11615711
+carla-bridge: execution finished request_id=cap07b-04-t04-req-11615711 status=completed moved_m=2.377 stopped=True
+carla-bridge: execution authorized request_id=cap07b-05-r01-req-11616169 intent_id=cap07b-05-r01-11616169
+carla-bridge: execution finished request_id=cap07b-05-r01-req-11616169 status=completed moved_m=1.801 stopped=True
+carla-bridge: execution authorized request_id=cap07b-05-r02-req-11616670 intent_id=cap07b-05-r02-11616670
+carla-bridge: execution finished request_id=cap07b-05-r02-req-11616670 status=completed moved_m=1.794 stopped=True
+carla-bridge: stopped
+ERROR: failed to destroy actor 813 : std::exception 
+ERROR: failed to destroy actor 814 : std::exception 
+ERROR: failed to destroy actor 815 : std::exception 
+ERROR: failed to destroy actor 804 : std::exception 
+ERROR: failed to destroy actor 805 : std::exception 
+ERROR: failed to destroy actor 808 : std::exception 
+wrote docs/evidence/vln-avp-cap-08c-02/approach/result.json
+status=PASS task_status=goal_reached rounds=2 real_model_rounds=2 segments=2 goal_distance_m=0.553
+{
+  "status": "PASS",
+  "decision": "ALIGNMENT_COMPLETED",
+  "bay_id": "bay03",
+  "initial": {
+    "lateral_m": 0.0992,
+    "heading_deg": 3.4459,
+    "longitudinal_m": -0.0058,
+    "boundary_m": 0.139
+  },
+  "final": {
+    "lateral_m": 0.0039,
+    "heading_deg": 0.4447,
+    "longitudinal_m": -0.0052,
+    "boundary_m": 0.185
+  },
+  "rounds": 2,
+  "collisions": 0,
+  "final_speed": 0.0,
+  "entry_executed": false,
+  "parking_arc_executed": false,
+  "reason": null
+}
+{
+  "status": "PASS",
+  "decision": "ENTRY_COMPLETED",
+  "bay_id": "bay03",
+  "initial": {
+    "x": -3.9961,
+    "y": -17.1952,
+    "yaw_deg": -89.5553
+  },
+  "final": {
+    "x": -9.4864,
+    "y": -21.2488,
+    "yaw_deg": -176.5441,
+    "distance_to_slot_m": 0.053,
+    "heading_error_deg": 3.4559,
+    "boundary_clearance_m": 0.052,
+    "obstacle_clearance_m": 0.751,
+    "footprint_inside_bay": true
+  },
+  "rounds": 4,
+  "collisions": 0,
+  "final_speed": 0.0,
+  "entry_completed": true,
+  "parking_completed": false,
+  "reason": null
+}
+{
+  "status": "PASS",
+  "session_id": "cap08c-02-s1",
+  "parking_completed": true,
+  "current_stage": "COMPLETED",
+  "completed_stages": [
+    "GOAL_UNDERSTANDING",
+    "TARGET_BINDING",
+    "APPROACH",
+    "TARGET_VERIFICATION",
+    "ALIGNMENT",
+    "ENTRY",
+    "POSE_REFINEMENT",
+    "FINAL_VERIFICATION",
+    "COMPLETION"
+  ],
+  "task_understanding": {
+    "valid": true,
+    "start_task": true,
+    "request_observation": false,
+    "safe_stop": false,
+    "checks": {
+      "task_type": true,
+      "constraints_present": true,
+      "evidence_present": true
+    },
+    "reasons": [],
+    "decision": "START_TASK"
+  },
+  "binding": {
+    "bay_id": "bay03",
+    "selected_label": "B"
+  },
+  "approach": {
+    "t": 3113.762,
+    "x": -3.901,
+    "y": -17.196,
+    "z": 5.791,
+    "yaw": -86.554,
+    "speed": 0.0,
+    "heading_rad": -1.510654,
+    "snapshot_frame": 11614036,
+    "sim_timestamp": 3113.7615606891923,
+    "image_frame": null,
+    "image_frame_delta": null,
+    "road_id": 1,
+    "lane_id": -1,
+    "road_s": 21.099,
+    "lane_width": 3.5,
+    "is_junction": false
+  },
+  "verification_stage": "TARGET_CONFIRMED",
+  "alignment": "ALIGNMENT_COMPLETED",
+  "final": {
+    "verifier": "FINAL_PARKING_VERIFIED",
+    "gate": "PARKING_COMPLETED"
+  },
+  "session": {
+    "close": "DESTROYED",
+    "revision": 23
+  },
+  "error": null
+}

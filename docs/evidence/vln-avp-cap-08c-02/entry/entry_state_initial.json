@@ -1,0 +1,175 @@
+{
+  "state": {
+    "x": -3.9961,
+    "y": -17.1952,
+    "z": 5.7908,
+    "yaw_deg": -89.5553,
+    "yaw_rad": -1.563035,
+    "pitch": 0.2743,
+    "roll": 0.0356,
+    "speed": 0.0,
+    "frame": 11614666,
+    "sim_time": 3145.2616
+  },
+  "stability_samples": [
+    {
+      "x": -3.9961,
+      "y": -17.1952,
+      "speed": 0.0
+    },
+    {
+      "x": -3.9961,
+      "y": -17.1952,
+      "speed": 0.0
+    },
+    {
+      "x": -3.9961,
+      "y": -17.1952,
+      "speed": 0.0
+    },
+    {
+      "x": -3.9961,
+      "y": -17.1952,
+      "speed": 0.0
+    },
+    {
+      "x": -3.9961,
+      "y": -17.1952,
+      "speed": 0.0
+    }
+  ],
+  "measurement": {
+    "x": -3.9961,
+    "y": -17.1952,
+    "yaw_rad": -1.563035,
+    "yaw_deg": -89.5553,
+    "speed_mps": 0.0,
+    "stopped": true,
+    "route_s": 0.0,
+    "cross_track_m": 0.0,
+    "route_deviation_m": 0.0,
+    "progress_m": 0.0,
+    "remaining_m": 8.0764,
+    "distance_to_target_m": 6.866,
+    "heading_error_deg": 90.4447,
+    "lateral_error_m": -4.1048,
+    "longitudinal_error_m": -5.5039,
+    "footprint_corners": [
+      [
+        -3.0367,
+        -19.6908
+      ],
+      [
+        -4.9166,
+        -19.7054
+      ],
+      [
+        -4.9555,
+        -14.6996
+      ],
+      [
+        -3.0756,
+        -14.685
+      ]
+    ],
+    "footprint_inside_bay": false,
+    "boundary_clearance_m": 0.185,
+    "obstacle_clearance_m": 1.888,
+    "reference_to_route_m": 0.0,
+    "footprint_corners_inside_corridor": true,
+    "stability": {
+      "samples": 5,
+      "max_speed_mps": 0.0,
+      "position_drift_m": 0.0,
+      "stable": true
+    },
+    "collision_count": 0
+  },
+  "verification": {
+    "schema": "vln.parking.entry_result.v1",
+    "skill": "vln.parking.entry",
+    "stage": "ENTRY_PENDING",
+    "task_id": "cap07b-04",
+    "bay_id": "bay03",
+    "slot_node_id": "park_slot",
+    "approach_node_id": "park_entry",
+    "route_id": "bay03-entry-7570949dfd31",
+    "route_hash": "7570949dfd3112c378ddf95b6872b2d5eb4cd5d3adbd029f932048c4b7b84694",
+    "entry_valid": false,
+    "completed": false,
+    "identity_verified": true,
+    "authorization_verified": true,
+    "checks": {
+      "target_identity_matches_binding": true,
+      "route_identity_matches_authorization": true,
+      "entry_authorization_active": true,
+      "vehicle_state_valid": true,
+      "route_progress_terminal": false,
+      "terminal_position": false,
+      "terminal_heading": false,
+      "footprint_inside_bay": false,
+      "boundary_clearance": true,
+      "obstacle_clearance": true,
+      "route_deviation": true,
+      "entry_corridor": true,
+      "stopped": true,
+      "stop_stable": true,
+      "no_collision": true
+    },
+    "reasons": [
+      "route_progress_terminal",
+      "terminal_position",
+      "terminal_heading"
+    ],
+    "measurement": {
+      "x": -3.9961,
+      "y": -17.1952,
+      "yaw_rad": -1.563035,
+      "yaw_deg": -89.5553,
+      "speed_mps": 0.0,
+      "stopped": true,
+      "route_s": 0.0,
+      "cross_track_m": 0.0,
+      "route_deviation_m": 0.0,
+      "progress_m": 0.0,
+      "remaining_m": 8.0764,
+      "distance_to_target_m": 6.866,
+      "heading_error_deg": 90.4447,
+      "lateral_error_m": -4.1048,
+      "longitudinal_error_m": -5.5039,
+      "footprint_corners": [
+        [
+          -3.0367,
+          -19.6908
+        ],
+        [
+          -4.9166,
+          -19.7054
+        ],
+        [
+          -4.9555,
+          -14.6996
+        ],
+        [
+          -3.0756,
+          -14.685
+        ]
+      ],
+      "footprint_inside_bay": false,
+      "boundary_clearance_m": 0.185,
+      "obstacle_clearance_m": 1.888,
+      "reference_to_route_m": 0.0,
+      "footprint_corners_inside_corridor": true,
+      "stability": {
+        "samples": 5,
+        "max_speed_mps": 0.0,
+        "position_drift_m": 0.0,
+        "stable": true
+      },
+      "collision_count": 0
+    },
+    "stage_history": [
+      "ENTRY_PENDING"
+    ]
+  }
+}

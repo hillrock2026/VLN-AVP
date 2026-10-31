@@ -16,6 +16,9 @@ Exactly one request object per line.
 | `type` | string | yes | `"submit"` is the only supported type in v1. |
 | `capability_id` | string | yes | Non-blank capability name. |
 | `payload` | string | yes | Non-blank string; opaque to the protocol. |
+| `session_id` | string | no | Optional persistent Kernel Session id. Omitted = original one-shot request. |
+| `expected_context_revision` | integer | no | Optional Session Context revision; a mismatch is rejected before execution. |
+| `domain` | object | no | Optional VLN-AVP domain extension stored in the Kernel Context. |
 
 Example:
 
@@ -51,6 +54,13 @@ Exactly one response object per request line, always emitted, always terminal.
 | `execution_status` | string or null | Kernel execution status string when available; always `null` for the stub. |
 | `output` | string or null | Present only for a terminal success. |
 | `error` | object or null | `{"code": string, "message": string}` when the request failed at any layer. |
+| `session_id` | string or null | Persistent Kernel Session id when the persistent mode is used. |
+| `session_state` | string or null | Kernel Session lifecycle state at response time. |
+| `task_id` / `workflow_id` | string or null | Kernel Task/Workflow created for this request. |
+| `context_revision` | integer or null | Session Context revision after the response. |
+| `context_before` / `context_after` | object or null | Session Context snapshot before/after execution. |
+| `turn` | integer or null | Persistent Session turn counter. |
+| `context_updated` | boolean or null | Whether the real execution feedback was written to Context. |
 
 Success example:
 

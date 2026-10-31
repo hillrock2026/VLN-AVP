@@ -1,0 +1,11 @@
+{
+  "source": "final_parking_verifier",
+  "task_id": "cap07b-06",
+  "bay_id": "bay03",
+  "slot_node_id": "park_slot",
+  "vehicle_actor_id": 804,
+  "current_frame": 11617200,
+  "now": "2026-10-31T07:29:29.986240+00:00",
+  "has_verifier_result": true,
+  "verifier_result_sha256": "dad0d9cc0b3d6091eb5ba7e45f70480eee463ae872b1ac33c927c648e47d3fb3"
+}

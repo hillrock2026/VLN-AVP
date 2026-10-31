@@ -91,6 +91,9 @@ from vln.parking.autonomous import (  # noqa: E402
 
 TASK_ID = "cap07b-03"
 SKILL_ID = "vln.parking.alignment"
+SESSION_ID: str | None = None
+CONTEXT_REVISION: int | None = None
+PARKING_CONTEXT: dict | None = None
 EGO_ROLE = "vln_cap07b03_ego"
 COLLISION_ROLE = "vln_cap07b03_collision"
 FIXED_DT = 0.05
@@ -475,6 +478,7 @@ def _run_round_via_kernel(
     baseline_collisions,
     collision_events,
 ) -> dict:
+    global CONTEXT_REVISION
     pre = _state(session, ego)
     intent_id = f"{TASK_ID}-r{round_index:02d}-{pre['frame']}"
     intent = AgentIntent(
@@ -486,7 +490,20 @@ def _run_round_via_kernel(
         ),
     )
     request_id = f"{TASK_ID}-r{round_index:02d}-req-{pre['frame']}"
-    request = build_request(intent, request_id=request_id)
+    request = build_request(
+        intent,
+        request_id=request_id,
+        session_id=SESSION_ID,
+        expected_context_revision=CONTEXT_REVISION,
+        domain={
+            "parking_session_id": SESSION_ID or TASK_ID,
+            "parking": PARKING_CONTEXT,
+            "skill_execution_id": request_id,
+            "phase": plan.phase,
+            "bay_id": target.bay_id,
+            "slot_node_id": target.slot_node_id,
+        },
+    )
     bridge.register_permit(
         request_id=request_id,
         intent_id=intent.intent_id,
@@ -518,6 +535,8 @@ def _run_round_via_kernel(
     started = time.monotonic()
     try:
         response = host_client.send(request)
+        if response.context_revision is not None:
+            CONTEXT_REVISION = response.context_revision
         transaction = bridge.get_transaction(request_id)
         error, output = nav01e._validate_kernel_correlation(
             response, request, intent, transaction
@@ -608,7 +627,7 @@ def _refusal(
     return exit_code
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, runtime: dict | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=2000)
@@ -658,6 +677,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-rounds", type=int, default=4)
     parser.add_argument("--ttl-s", type=float, default=600.0)
     args = parser.parse_args(argv)
+    runtime = dict(runtime or {})
+    keep_runtime = bool(runtime.get("keep_runtime"))
+    provided_session = runtime.get("session")
+    provided_ego = runtime.get("ego")
+    provided_host = runtime.get("host_client")
+    provided_bridge = runtime.get("bridge")
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -758,28 +783,35 @@ def main(argv: list[str] | None = None) -> int:
     final_measurement = None
     final_verification = None
     try:
-        session = nav01b.Session(
-            args.host, args.port, str(out_dir), map_name="UndergroundCarPark"
-        )
+        if provided_session is not None:
+            session = provided_session
+        else:
+            session = nav01b.Session(
+                args.host, args.port, str(out_dir), map_name="UndergroundCarPark"
+            )
         base["carla"] = {
             "server_version": session.client.get_server_version(),
             "map": session.world.get_map().name,
             "synchronous_mode": session.world.get_settings().synchronous_mode,
         }
-        leftovers = leftover_actors(session.world)
-        if leftovers:
-            raise RuntimeError(
-                "world already contains vln_ actors; refusing to run alignment "
-                "on an unknown scene"
+        if provided_ego is not None:
+            ego = provided_ego
+            session.tick(5)
+        else:
+            leftovers = leftover_actors(session.world)
+            if leftovers:
+                raise RuntimeError(
+                    "world already contains vln_ actors; refusing to run "
+                    "alignment on an unknown scene"
+                )
+            ego = session.spawn_vehicle(
+                EGO_ROLE,
+                float(approach.pose["x"]),
+                float(approach.pose["y"]),
+                args.spawn_z,
+                float(approach.pose["yaw"]),
             )
-        ego = session.spawn_vehicle(
-            EGO_ROLE,
-            float(approach.pose["x"]),
-            float(approach.pose["y"]),
-            args.spawn_z,
-            float(approach.pose["yaw"]),
-        )
-        session.tick(40)
+            session.tick(40)
         ego.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
         session.tick(10)
         actual = _state(session, ego)
@@ -959,17 +991,26 @@ def main(argv: list[str] | None = None) -> int:
                 collision_events=context["collision_events"],
             )
 
-        bridge = CarlaExecutionBridge(
-            _handle_kernel_execution, request_timeout_s=180.0
-        )
-        bridge.start()
-        host_env = {
-            **os.environ.copy(),
-            "VLN_CARLA_EXEC_BRIDGE": bridge.endpoint,
-            "VLN_CARLA_EXEC_TOKEN": bridge.token,
-            "VLN_CARLA_EXEC_TIMEOUT_MS": str(args.kernel_exec_timeout_ms),
-        }
-        host_client = HostClient([args.kernel_host], env=host_env)
+        if provided_bridge is not None:
+            bridge = provided_bridge
+            bridge.set_handler(_handle_kernel_execution)
+        else:
+            bridge = CarlaExecutionBridge(
+                _handle_kernel_execution, request_timeout_s=180.0
+            )
+            bridge.start()
+        if provided_host is not None:
+            host_client = provided_host
+        else:
+            host_env = {
+                **os.environ.copy(),
+                "VLN_CARLA_EXEC_BRIDGE": bridge.endpoint,
+                "VLN_CARLA_EXEC_TOKEN": bridge.token,
+                "VLN_CARLA_EXEC_TIMEOUT_MS": str(
+                    args.kernel_exec_timeout_ms
+                ),
+            }
+            host_client = HostClient([args.kernel_host], env=host_env)
         base["agent_kernel"] = {
             "host_exe": args.kernel_host,
             "bridge_endpoint": bridge.endpoint,
@@ -1309,7 +1350,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"bridge evidence error: {type(error).__name__}: {error}",
                     file=sys.stderr,
                 )
-        if host_client is not None:
+        if host_client is not None and not keep_runtime:
             try:
                 stderr_lines = host_client.stderr_lines
                 (out_dir / "kernel_host_stderr.log").write_text(
@@ -1321,7 +1362,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"host cleanup error: {type(error).__name__}: {error}",
                     file=sys.stderr,
                 )
-        if bridge is not None:
+        if bridge is not None and not keep_runtime:
             try:
                 bridge.close()
             except Exception as error:
@@ -1329,7 +1370,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"bridge cleanup error: {type(error).__name__}: {error}",
                     file=sys.stderr,
                 )
-        if session is not None:
+        if session is not None and not keep_runtime:
             try:
                 cleanup = cleanup_session(
                     session.world, session.actors, session.original

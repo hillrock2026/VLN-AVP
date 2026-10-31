@@ -1,0 +1,28 @@
+kernel-host: carla execution bridge configured at 127.0.0.1:43507
+kernel-host: Taichu planner bridge configured at 127.0.0.1:60865
+kernel-host: ready (kernel host; real Agent-Kernel runtime integration)
+kernel-host: persistent session created session_id=cap08c-02-s1
+kernel-host: planner.plan request_id=cap08c02-task-a1-001 planner_request_id=1 status=candidate context_revision=1
+kernel-host: session.context.update request_id=cap08c-02-stage-target-binding session_id=cap08c-02-s1 status=running context_revision=2
+kernel-host: session.context.update request_id=cap08c-02-stage-approach session_id=cap08c-02-s1 status=running context_revision=3
+kernel-host: planner.plan request_id=cap08b-plan-r1-carla-01e-r1-f11613855-001 planner_request_id=2 status=candidate context_revision=4
+kernel-host: parking.move: carla bridge completed request_id=carla-02-r01-req-11613857 moved_m=3.711785
+kernel-host: planner.plan request_id=cap08b-plan-r2-carla-01e-r2-f11613954-001 planner_request_id=3 status=candidate context_revision=6
+kernel-host: parking.move: carla bridge completed request_id=carla-02-r02-req-11613956 moved_m=3.708123
+kernel-host: session.context.update request_id=cap08c-02-stage-target-verification session_id=cap08c-02-s1 status=running context_revision=8
+kernel-host: planner.plan request_id=cap08c-verify-a1-o1-001 planner_request_id=4 status=candidate context_revision=9
+kernel-host: planner.plan request_id=cap08c-verify-a1-o2-001 planner_request_id=5 status=candidate context_revision=10
+kernel-host: session.context.update request_id=cap08c-02-stage-alignment session_id=cap08c-02-s1 status=running context_revision=11
+kernel-host: parking.move: carla bridge completed request_id=cap07b-03-r01-req-11614106 moved_m=1.307630
+kernel-host: parking.move: carla bridge completed request_id=cap07b-03-r02-req-11614330 moved_m=1.303114
+kernel-host: session.context.update request_id=cap08c-02-stage-entry session_id=cap08c-02-s1 status=running context_revision=14
+kernel-host: parking.move: carla bridge completed request_id=cap07b-04-s01-req-11614666 moved_m=3.917695
+kernel-host: parking.move: carla bridge completed request_id=cap07b-04-s02-req-11614999 moved_m=3.828498
+kernel-host: parking.move: carla bridge completed request_id=cap07b-04-t03-req-11615337 moved_m=2.401014
+kernel-host: parking.move: carla bridge completed request_id=cap07b-04-t04-req-11615711 moved_m=2.377293
+kernel-host: session.context.update request_id=cap08c-02-stage-pose-refinement session_id=cap08c-02-s1 status=running context_revision=19
+kernel-host: parking.move: carla bridge completed request_id=cap07b-05-r01-req-11616169 moved_m=1.801375
+kernel-host: parking.move: carla bridge completed request_id=cap07b-05-r02-req-11616670 moved_m=1.793920
+kernel-host: session.context.update request_id=cap08c-02-stage-final-verification session_id=cap08c-02-s1 status=running context_revision=22
+kernel-host: session.context.update request_id=cap08c-02-stage-completed session_id=cap08c-02-s1 status=completed context_revision=23
+kernel-host: persistent session closed session_id=cap08c-02-s1

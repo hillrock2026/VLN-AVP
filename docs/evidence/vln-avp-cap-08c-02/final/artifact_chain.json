@@ -1,0 +1,12 @@
+{
+  "entry_artifact_sha256": "17a68bc73c78fb62e843c1301c9b0dbe7cb30a47a6caa6c164401650997141b6",
+  "pose_ready_artifact_sha256": "60c1d9a2ec9f01a9a3d46c9ac77cf7bf7f8fb3a033f8c021d90bf96b627f49ef",
+  "entry_completion_id": "d27cb2091cd12e808108d35aee9d874b6f6cc521cd210207a781cb343ef848d2",
+  "refinement_plan_hash": "c99c30bc948462c7978247d955d85fe1bb20562eee146b4d19d760e5f0b018f7",
+  "entry_frame": 11616164,
+  "pose_ready_frame": 11617190,
+  "verification_frame": 11617200,
+  "entry_task_id": "cap07b-04",
+  "refinement_task_id": "cap07b-05",
+  "vehicle_actor_id": 804
+}

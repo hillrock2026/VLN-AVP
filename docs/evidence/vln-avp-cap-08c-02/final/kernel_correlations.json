@@ -1,0 +1,77 @@
+{
+  "capability": "parking.move",
+  "skills": [
+    "vln.parking.entry",
+    "vln.parking.refinement",
+    "vln.parking.final_verification"
+  ],
+  "entry_rounds": [
+    {
+      "phase": null,
+      "request_id": "cap07b-04-s01-req-11614666",
+      "intent_id": "cap07b-04-s01-11614666",
+      "capability_id": "parking.move",
+      "execution_status": "completed",
+      "request_ok": true,
+      "phase_success": true,
+      "transaction_present": true
+    },
+    {
+      "phase": null,
+      "request_id": "cap07b-04-s02-req-11614999",
+      "intent_id": "cap07b-04-s02-11614999",
+      "capability_id": "parking.move",
+      "execution_status": "completed",
+      "request_ok": true,
+      "phase_success": true,
+      "transaction_present": true
+    },
+    {
+      "phase": null,
+      "request_id": "cap07b-04-t03-req-11615337",
+      "intent_id": "cap07b-04-t03-11615337",
+      "capability_id": "parking.move",
+      "execution_status": "completed",
+      "request_ok": true,
+      "phase_success": true,
+      "transaction_present": true
+    },
+    {
+      "phase": null,
+      "request_id": "cap07b-04-t04-req-11615711",
+      "intent_id": "cap07b-04-t04-11615711",
+      "capability_id": "parking.move",
+      "execution_status": "completed",
+      "request_ok": true,
+      "phase_success": true,
+      "transaction_present": true
+    }
+  ],
+  "refinement_rounds": [
+    {
+      "phase": "TERMINAL_REVERSE_ALIGN",
+      "request_id": "cap07b-05-r01-req-11616169",
+      "intent_id": "cap07b-05-r01-11616169",
+      "capability_id": "parking.move",
+      "execution_status": "completed",
+      "request_ok": true,
+      "phase_success": true,
+      "transaction_present": true
+    },
+    {
+      "phase": "TERMINAL_FORWARD_RETURN",
+      "request_id": "cap07b-05-r02-req-11616670",
+      "intent_id": "cap07b-05-r02-11616670",
+      "capability_id": "parking.move",
+      "execution_status": "completed",
+      "request_ok": true,
+      "phase_success": true,
+      "transaction_present": true
+    }
+  ],
+  "final_verification": {
+    "read_only": true,
+    "capability": null,
+    "skill": "vln.parking.final_verification"
+  }
+}

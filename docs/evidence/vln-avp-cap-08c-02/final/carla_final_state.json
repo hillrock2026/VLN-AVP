@@ -1,0 +1,35 @@
+{
+  "map": "Carla/Maps/UndergroundCarPark",
+  "frame": 11617200,
+  "sim_time": 3271.9616,
+  "transform": {
+    "x": -9.4817,
+    "y": -21.1965,
+    "z": 5.7859,
+    "yaw_deg": -177.8432,
+    "yaw_rad": -3.103949,
+    "pitch": 0.1782,
+    "roll": 0.0032
+  },
+  "velocity": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 0.0
+  },
+  "speed_mps": 0.0,
+  "vehicle_actor_id": 804,
+  "vehicle_type_id": "vehicle.dodge.charger",
+  "bounding_box": {
+    "extent": {
+      "x": 2.503022,
+      "y": 0.940476,
+      "z": 0.770157
+    },
+    "location": {
+      "x": -0.006238,
+      "y": -0.0,
+      "z": 0.762784
+    }
+  },
+  "actor_alive": true
+}

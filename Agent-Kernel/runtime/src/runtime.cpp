@@ -29,7 +29,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
-#include <utility>
+#include <vector>
 
 namespace ak::runtime {
 namespace {
@@ -65,6 +65,18 @@ Runtime::Runtime()
 Runtime::~Runtime() = default;
 
 RuntimeResult Runtime::Run(ak::Session& session) {
+    return RunImpl(session, nullptr, true);
+}
+
+RuntimeResult Runtime::RunWorkflow(ak::Session& session,
+                                   const ak::WorkflowID& workflow_id,
+                                   bool keep_session_active) {
+    return RunImpl(session, &workflow_id, !keep_session_active);
+}
+
+RuntimeResult Runtime::RunImpl(ak::Session& session,
+                               const ak::WorkflowID* only_workflow,
+                               bool shutdown_session) {
     // AK0035 §7.9 / §17.5 — complete Runtime public exception boundary.
     // Unexpected implementation exceptions are intercepted within the
     // Runtime implementation and translated into RuntimeResult objects;
@@ -81,6 +93,13 @@ RuntimeResult Runtime::Run(ak::Session& session) {
             RuntimeResult result;
             result.status = RuntimeStatus::kInvalidSession;
             result.message = "Session is not in an executable lifecycle state";
+            return result;
+        }
+
+        if (only_workflow != nullptr && !session.HasWorkflow(*only_workflow)) {
+            RuntimeResult result;
+            result.status = RuntimeStatus::kInvalidSession;
+            result.message = "Requested Workflow is not present in the Session";
             return result;
         }
 
@@ -111,18 +130,32 @@ RuntimeResult Runtime::Run(ak::Session& session) {
 
         const ak::SessionID sessionId = session.GetID();
 
-        // Session started event (AK0034 §10).
-        PublishRuntimeEvent(ak::RuntimeEventType::kSessionStarted,
-                            ak::TaskID(), ak::WorkflowID(), sessionId,
-                            "session started");
+        // Session started event (AK0034 §10). A persistent Session was
+        // already started by its owner; per-workflow/task events still follow.
+        if (shutdown_session) {
+            PublishRuntimeEvent(ak::RuntimeEventType::kSessionStarted,
+                                ak::TaskID(), ak::WorkflowID(), sessionId,
+                                "session started");
+        }
 
         RuntimeResult result;
         result.status = RuntimeStatus::kCompleted;
         result.message = "Runtime completed";
 
-        // Execute every Workflow owned by the Session (canonical lifecycle:
+        // Execute the requested Workflow, or every Workflow owned by the
+        // Session for the original one-shot Run semantics.
+        std::vector<ak::WorkflowID> workflowIds;
+        if (only_workflow != nullptr) {
+            workflowIds.push_back(*only_workflow);
+        } else {
+            for (const ak::WorkflowID workflowId : session.Workflows().Enumerate()) {
+                workflowIds.push_back(workflowId);
+            }
+        }
+
+        // Execute the selected Workflows (canonical lifecycle:
         // Created → Initialized → Ready → Running).
-        for (const ak::WorkflowID workflowId : session.Workflows().Enumerate()) {
+        for (const ak::WorkflowID workflowId : workflowIds) {
             ak::Workflow* workflow = session.FindWorkflow(workflowId);
             if (workflow == nullptr) {
                 continue;
@@ -257,14 +290,17 @@ RuntimeResult Runtime::Run(ak::Session& session) {
             workflowScheduler.Detach(workflowId);
         }
 
-        // Session completion — Runtime requests the Core lifecycle
-        // transition (AK0035 §2.2 Lifecycle Coordination).
-        session.Shutdown();
+        // Session completion — only the one-shot Run owns the Session
+        // lifecycle. A persistent Session remains Ready for the next
+        // Workflow/Task run and is closed explicitly by its owner.
+        if (shutdown_session) {
+            session.Shutdown();
 
-        // Session completed event.
-        PublishRuntimeEvent(ak::RuntimeEventType::kSessionCompleted,
-                            ak::TaskID(), ak::WorkflowID(), sessionId,
-                            "session completed");
+            // Session completed event.
+            PublishRuntimeEvent(ak::RuntimeEventType::kSessionCompleted,
+                                ak::TaskID(), ak::WorkflowID(), sessionId,
+                                "session completed");
+        }
 
         if (result.workflowsFailed > 0 || result.tasksFailed > 0) {
             result.status = RuntimeStatus::kFailed;

@@ -1,0 +1,67 @@
+{
+  "started_utc": "2026-10-31T07:29:02.536867+00:00",
+  "finished_utc": "2026-10-31T07:29:07.355767+00:00",
+  "status": "PASS",
+  "decision": "ALIGNMENT_COMPLETED",
+  "error": null,
+  "rounds": 2,
+  "collision_events": 0,
+  "kernel_executions": 2,
+  "initial_measurement": {
+    "x": -3.9008,
+    "y": -17.1958,
+    "yaw_rad": -1.510654,
+    "yaw_deg": -86.5541,
+    "speed_mps": 0.0,
+    "stopped": true,
+    "lateral_error_m": 0.0992,
+    "heading_error_deg": 3.4459,
+    "longitudinal_error_m": -0.0058,
+    "standoff_m": 0.5442,
+    "boundary_clearance_m": 0.139,
+    "obstacle_clearance_m": 2.072,
+    "reference_inside_bay": false,
+    "inside_allowed_region": true,
+    "stability": {
+      "samples": 5,
+      "max_speed_mps": 0.0,
+      "position_drift_m": 0.0,
+      "stable": true
+    }
+  },
+  "final_measurement": {
+    "x": -3.9961,
+    "y": -17.1952,
+    "yaw_rad": -1.563035,
+    "yaw_deg": -89.5553,
+    "speed_mps": 0.0,
+    "stopped": true,
+    "lateral_error_m": 0.0039,
+    "heading_error_deg": 0.4447,
+    "longitudinal_error_m": -0.0052,
+    "standoff_m": 0.5448,
+    "boundary_clearance_m": 0.185,
+    "obstacle_clearance_m": 1.888,
+    "reference_inside_bay": false,
+    "inside_allowed_region": true,
+    "stability": {
+      "samples": 5,
+      "max_speed_mps": 0.0,
+      "position_drift_m": 0.0,
+      "stable": true
+    }
+  },
+  "budget": {
+    "max_rounds": 4,
+    "max_phase_distance_m": 1.3,
+    "max_total_distance_m": 6.0,
+    "max_phase_sim_seconds": 25.0,
+    "reverse_speed_cap_mps": 0.15,
+    "forward_speed_cap_mps": 0.12,
+    "rounds_used": 2,
+    "distance_used_m": 2.6058,
+    "remaining_distance_m": 3.3942,
+    "can_start_round": true
+  },
+  "cleanup": null
+}

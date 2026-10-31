@@ -1,0 +1,133 @@
+{
+  "observation_id": "attempt01_01_view_a",
+  "view": "view_a",
+  "frame_id": 11614059,
+  "raw_image": "docs/evidence/vln-avp-cap-08c-02/target_verification/attempt_01/attempt01_01_view_a_raw_11614059.png",
+  "raw_image_sha256": "8ef0d31d3354c1033b3b773c4e3753b76e2e48b6ad882cef9dbb7be74624782a",
+  "camera": {
+    "actor_id": 811,
+    "role_name": "vln_cap07a_bind_cam",
+    "fov": 110.0,
+    "width": 1280,
+    "height": 720,
+    "image_frame": 11614059,
+    "local_offset": [
+      -5.0,
+      -1.0,
+      1.6
+    ],
+    "local_pitch": -12.0,
+    "local_yaw": -25.0,
+    "world_transform": {
+      "x": -5.1989,
+      "y": -12.2566,
+      "z": 7.3656,
+      "pitch": -11.7145,
+      "yaw": -111.535,
+      "roll": -0.0933
+    },
+    "raw_png": "docs/evidence/vln-avp-cap-08c-02/target_verification/attempt_01/attempt01_01_view_a_raw_11614059.png",
+    "raw_png_sha256": "8ef0d31d3354c1033b3b773c4e3753b76e2e48b6ad882cef9dbb7be74624782a"
+  },
+  "ego": {
+    "x": -3.9008,
+    "y": -17.1958,
+    "z": 5.7909,
+    "yaw": -86.5541,
+    "pitch": 0.2973,
+    "roll": 0.0378
+  },
+  "camera_offset": [
+    -5.0,
+    -1.0,
+    1.6
+  ],
+  "camera_pitch": -12.0,
+  "camera_yaw": -25.0,
+  "fov": 110.0,
+  "overlay_image": "docs/evidence/vln-avp-cap-08c-02/target_verification/attempt_01/attempt01_01_view_a_overlay_11614059.png",
+  "overlay_image_sha256": "409d797500037c02ee9306311cd6bffe9153ce59db00d07f7f84860809b79a3e",
+  "projection": {
+    "bay_id": "bay03",
+    "slot_node_id": "park_slot",
+    "all_in_frame": true,
+    "visible_corners": 4,
+    "corners": [
+      [
+        896.527,
+        372.697
+      ],
+      [
+        396.16,
+        336.054
+      ],
+      [
+        471.294,
+        323.787
+      ],
+      [
+        877.534,
+        346.255
+      ]
+    ]
+  },
+  "view_signature": "{\"offset\": [-5.0, -1.0, 1.6], \"pitch\": -11.715, \"x\": -5.199, \"y\": -12.257, \"yaw\": -111.535, \"z\": 7.366}",
+  "reasons": [],
+  "session_action": {
+    "valid": true,
+    "continue_session": true,
+    "request_observation": false,
+    "safe_stop": false,
+    "checks": {
+      "bay_identity_matches": true,
+      "selected_label": true,
+      "occupancy_vacant": true,
+      "boundary_clear": true,
+      "not_occluded": true,
+      "evidence_sufficient": true
+    },
+    "reasons": [],
+    "action": "CONTINUE_CURRENT_STAGE"
+  },
+  "model_called": true,
+  "model_text": "Decision: CONTINUE_CURRENT_STAGE\nA: 空闲\n边界: 清晰\n遮挡: 无\n证据: 充分\nSelected: A",
+  "server_response_id": "chatcmpl-b3210dae660c4e91a5929241",
+  "parse_ok": true,
+  "prompt": "\n本次泊车会话的上下文：\n用户原始指令：请将车辆停入左侧靠近出口的空闲车位\n绑定目标：bay03 / park_slot。\n当前阶段：TARGET_VERIFICATION。\n已完成阶段：GOAL_UNDERSTANDING, TARGET_BINDING, APPROACH。\n最近真实反馈：goal understanding passed; no Entry motion has been commanded yet。\n请同时给出下一步候选决策。只有高亮区域空闲、边界清晰、无遮挡且证据充分时，才能选择 CONTINUE_CURRENT_STAGE；任何不确定、不可见、占用或证据不足都必须选择 REQUEST_NEW_OBSERVATION 或 PROPOSE_SAFE_STOP，不得选择继续。\n不要照抄本说明，不要根据文字假定目标存在。\n\n请在上述字段块之前先写一行：\nDecision: CONTINUE_CURRENT_STAGE 或 REQUEST_NEW_OBSERVATION 或 PROPOSE_RECOVERY 或 PROPOSE_REPLAN 或 PROPOSE_SAFE_STOP\n\n请只依据这张刚刚采集的近距离停车场图像作答，不要使用历史图像或文字描述猜测。\n车辆已经停稳在目标车位的安全接近区域。图中用彩色线框标出了本次要复核的目标车位，并标有字母 A。\n请只判断高亮区域 A：\n1. 只有高亮区域内确实停放车辆时，才写「占用」；立柱、护栏、黄色防撞栏、挡车器、地面标线不是车辆，不能算占用。\n2. 只有高亮区域地面可见且没有车辆时，才写「空闲」。\n3. 高亮区域边界被画面裁断、被遮挡或看不全时，边界写「不清晰」。\n4. 看不清、有歧义或无法确认时写「无法确定」，不得猜测，也不得把无法确定当作空闲。\n5. 不要输出坐标、车位编号、x/y 数值、JSON 或长篇解释；不要照抄本说明。\n\n请严格按以下字段逐行输出，不要输出其他内容：\nA: 判断结果，只能从 空闲、占用、无法确定 中选择\n边界: 判断结果，只能从 清晰、不清晰、无法确定 中选择\n遮挡: 判断结果，只能从 无、有、无法确定 中选择\n证据: 判断结果，只能从 充分、不足、无法确定 中选择\nSelected: 只能写 A 或 无法确定\n\n输出格式（必须严格按以下顺序逐行输出，共 6 行；第一行必须是 Decision，任何一行都不得省略）：\nDecision: 从上面列出的动作值中选择一个\nA: 空闲、占用或无法确定\n边界: 清晰、不清晰或无法确定\n遮挡: 无、有或无法确定\n证据: 充分、不足或无法确定\nSelected: A 或 无法确定\n",
+  "verification": {
+    "observation_id": "attempt01_01_view_a",
+    "entity_bay_id": "bay03",
+    "image_path": "docs/evidence/vln-avp-cap-08c-02/target_verification/attempt_01/attempt01_01_view_a_overlay_11614059.png",
+    "image_sha256": "409d797500037c02ee9306311cd6bffe9153ce59db00d07f7f84860809b79a3e",
+    "raw_image_path": "docs/evidence/vln-avp-cap-08c-02/target_verification/attempt_01/attempt01_01_view_a_raw_11614059.png",
+    "raw_image_sha256": "8ef0d31d3354c1033b3b773c4e3753b76e2e48b6ad882cef9dbb7be74624782a",
+    "frame_id": 11614059,
+    "captured_at": "2026-10-31T07:28:28.585219+00:00",
+    "pose": {
+      "x": -3.9008,
+      "y": -17.1958,
+      "yaw": -86.5541
+    },
+    "camera": {
+      "x": -5.1989,
+      "y": -12.2566,
+      "z": 7.3656,
+      "yaw": -111.535,
+      "pitch": -11.7145
+    },
+    "view_signature": "{\"offset\": [-5.0, -1.0, 1.6], \"pitch\": -11.715, \"x\": -5.199, \"y\": -12.257, \"yaw\": -111.535, \"z\": 7.366}",
+    "model_request_id": "cap08c-verify-a1-o1-001",
+    "server_response_id": "chatcmpl-b3210dae660c4e91a5929241",
+    "model_text": "Decision: CONTINUE_CURRENT_STAGE\nA: 空闲\n边界: 清晰\n遮挡: 无\n证据: 充分\nSelected: A",
+    "occupancy": "vacant",
+    "boundary_clear": true,
+    "occluded": false,
+    "evidence_sufficient": true,
+    "identity_verified": true,
+    "identity_mismatch": false,
+    "parse_ok": true,
+    "request_ok": true,
+    "reasons": [],
+    "model_metadata": {}
+  }
+}

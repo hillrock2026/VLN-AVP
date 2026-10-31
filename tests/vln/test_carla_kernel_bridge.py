@@ -285,3 +285,30 @@ def test_registering_the_same_permit_twice_is_refused() -> None:
         _register(bridge, request)
         with pytest.raises(Exception):
             _register(bridge, request)
+
+
+def test_handler_can_be_switched_between_stages() -> None:
+    calls = []
+
+    def first(permit):
+        calls.append("first")
+        return _result()
+
+    def second(permit):
+        calls.append("second")
+        return _result()
+
+    request1 = _request(request_id="r-1")
+    request2 = _request(
+        request_id="r-2", intent=_intent(intent_id="i-2")
+    )
+    with CarlaExecutionBridge(first, token="t") as bridge:
+        _register(bridge, request1)
+        response1 = _send(bridge, request1)
+        bridge.set_handler(second)
+        _register(bridge, request2)
+        response2 = _send(bridge, request2)
+
+    assert response1["status"] == "completed"
+    assert response2["status"] == "completed"
+    assert calls == ["first", "second"]

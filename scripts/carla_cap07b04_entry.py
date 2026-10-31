@@ -99,6 +99,13 @@ from vln.parking.entry import (  # noqa: E402
 
 TASK_ID = "cap07b-04"
 SKILL_ID = "vln.parking.entry"
+# Optional persistent Kernel Session extension used by CAP-08A-01. None keeps
+# the original one-shot CAP-07B-04 behavior unchanged.
+SESSION_ID: str | None = None
+CONTEXT_REVISION: int | None = None
+# Parking-domain progress carried in the Agent-Kernel Context domain. It is a
+# working snapshot, not a second lifecycle.
+PARKING_CONTEXT: dict | None = None
 EGO_ROLE = "vln_cap07b04_ego"
 COLLISION_ROLE = "vln_cap07b04_collision"
 FIXED_DT = 0.05
@@ -945,6 +952,7 @@ def _run_terminal_phase_via_kernel(
     baseline_collisions,
     collision_events,
 ) -> dict:
+    global CONTEXT_REVISION
     pre = _state(session, ego)
     intent_id = f"{TASK_ID}-t{round_index:02d}-{pre['frame']}"
     intent = AgentIntent(
@@ -956,7 +964,20 @@ def _run_terminal_phase_via_kernel(
         ),
     )
     request_id = f"{TASK_ID}-t{round_index:02d}-req-{pre['frame']}"
-    request = build_request(intent, request_id=request_id)
+    request = build_request(
+        intent,
+        request_id=request_id,
+        session_id=SESSION_ID,
+        expected_context_revision=CONTEXT_REVISION,
+        domain={
+            "parking_session_id": SESSION_ID or TASK_ID,
+            "parking": PARKING_CONTEXT,
+            "skill_execution_id": request_id,
+            "phase": plan.phase,
+            "bay_id": route.bay_id,
+            "route_id": route.route_id,
+        },
+    )
     bridge.register_permit(
         request_id=request_id,
         intent_id=intent.intent_id,
@@ -990,6 +1011,8 @@ def _run_terminal_phase_via_kernel(
     started = time.monotonic()
     try:
         response = host_client.send(request)
+        if response.context_revision is not None:
+            CONTEXT_REVISION = response.context_revision
         transaction = bridge.get_transaction(request_id)
         error, output = nav01e._validate_kernel_correlation(
             response, request, intent, transaction
@@ -1001,6 +1024,15 @@ def _run_terminal_phase_via_kernel(
                 "execution_status": response.execution_status,
                 "output": output,
                 "transaction": transaction,
+                "session_id": response.session_id,
+                "session_state": response.session_state,
+                "context_revision": response.context_revision,
+                "context_before": response.context_before,
+                "context_after": response.context_after,
+                "task_id": response.task_id,
+                "workflow_id": response.workflow_id,
+                "turn": response.turn,
+                "context_updated": response.context_updated,
                 "wall_seconds": round(time.monotonic() - started, 3),
             }
         )
@@ -1046,6 +1078,7 @@ def _run_segment_via_kernel(
     baseline_collisions,
     collision_events,
 ) -> dict:
+    global CONTEXT_REVISION
     pre = _state(session, ego)
     intent_id = f"{TASK_ID}-s{segment.index:02d}-{pre['frame']}"
     intent = AgentIntent(
@@ -1057,7 +1090,21 @@ def _run_segment_via_kernel(
         ),
     )
     request_id = f"{TASK_ID}-s{segment.index:02d}-req-{pre['frame']}"
-    request = build_request(intent, request_id=request_id)
+    request = build_request(
+        intent,
+        request_id=request_id,
+        session_id=SESSION_ID,
+        expected_context_revision=CONTEXT_REVISION,
+        domain={
+            "parking_session_id": SESSION_ID or TASK_ID,
+            "parking": PARKING_CONTEXT,
+            "skill_execution_id": request_id,
+            "phase": segment.phase,
+            "segment_index": segment.index,
+            "bay_id": route.bay_id,
+            "route_id": route.route_id,
+        },
+    )
     bridge.register_permit(
         request_id=request_id,
         intent_id=intent.intent_id,
@@ -1091,6 +1138,8 @@ def _run_segment_via_kernel(
     started = time.monotonic()
     try:
         response = host_client.send(request)
+        if response.context_revision is not None:
+            CONTEXT_REVISION = response.context_revision
         transaction = bridge.get_transaction(request_id)
         error, output = nav01e._validate_kernel_correlation(
             response, request, intent, transaction
@@ -1102,6 +1151,15 @@ def _run_segment_via_kernel(
                 "execution_status": response.execution_status,
                 "output": output,
                 "transaction": transaction,
+                "session_id": response.session_id,
+                "session_state": response.session_state,
+                "context_revision": response.context_revision,
+                "context_before": response.context_before,
+                "context_after": response.context_after,
+                "task_id": response.task_id,
+                "workflow_id": response.workflow_id,
+                "turn": response.turn,
+                "context_updated": response.context_updated,
                 "wall_seconds": round(time.monotonic() - started, 3),
             }
         )
@@ -1175,7 +1233,13 @@ def _refusal(
     return exit_code
 
 
-def main(argv: list[str] | None = None, *, after_entry=None) -> int:
+def main(
+    argv: list[str] | None = None,
+    *,
+    after_entry=None,
+    before_entry=None,
+    runtime: dict | None = None,
+) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=2000)
@@ -1217,6 +1281,11 @@ def main(argv: list[str] | None = None, *, after_entry=None) -> int:
         ),
     )
     args = parser.parse_args(argv)
+    runtime = dict(runtime or {})
+    provided_session = runtime.get("session")
+    provided_ego = runtime.get("ego")
+    provided_host = runtime.get("host_client")
+    provided_bridge = runtime.get("bridge")
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1285,27 +1354,34 @@ def main(argv: list[str] | None = None, *, after_entry=None) -> int:
     last_s = 0.0
     authorization = None
     try:
-        session = nav01b.Session(
-            args.host, args.port, str(out_dir), map_name="UndergroundCarPark"
-        )
+        if provided_session is not None:
+            session = provided_session
+        else:
+            session = nav01b.Session(
+                args.host, args.port, str(out_dir), map_name="UndergroundCarPark"
+            )
         base["carla"] = {
             "server_version": session.client.get_server_version(),
             "map": session.world.get_map().name,
             "synchronous_mode": session.world.get_settings().synchronous_mode,
         }
-        leftovers = leftover_actors(session.world)
-        if leftovers:
-            raise RuntimeError(
-                "world already contains vln_ actors; refusing to run Entry on an unknown scene"
+        if provided_ego is not None:
+            ego = provided_ego
+            session.tick(5)
+        else:
+            leftovers = leftover_actors(session.world)
+            if leftovers:
+                raise RuntimeError(
+                    "world already contains vln_ actors; refusing to run Entry on an unknown scene"
+                )
+            ego = session.spawn_vehicle(
+                EGO_ROLE,
+                completion.final_pose[0],
+                completion.final_pose[1],
+                args.spawn_z,
+                math.degrees(completion.final_pose[2]),
             )
-        ego = session.spawn_vehicle(
-            EGO_ROLE,
-            completion.final_pose[0],
-            completion.final_pose[1],
-            args.spawn_z,
-            math.degrees(completion.final_pose[2]),
-        )
-        session.tick(40)
+            session.tick(40)
         ego.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
         session.tick(10)
         actual = _state(session, ego)
@@ -1520,17 +1596,26 @@ def main(argv: list[str] | None = None, *, after_entry=None) -> int:
                 collision_events=context["collision_events"],
             )
 
-        bridge = CarlaExecutionBridge(
-            _handle_kernel_execution, request_timeout_s=180.0
-        )
-        bridge.start()
-        host_env = {
-            **os.environ.copy(),
-            "VLN_CARLA_EXEC_BRIDGE": bridge.endpoint,
-            "VLN_CARLA_EXEC_TOKEN": bridge.token,
-            "VLN_CARLA_EXEC_TIMEOUT_MS": str(args.kernel_exec_timeout_ms),
-        }
-        host_client = HostClient([args.kernel_host], env=host_env)
+        if provided_bridge is not None:
+            bridge = provided_bridge
+            bridge.set_handler(_handle_kernel_execution)
+        else:
+            bridge = CarlaExecutionBridge(
+                _handle_kernel_execution, request_timeout_s=180.0
+            )
+            bridge.start()
+        if provided_host is not None:
+            host_client = provided_host
+        else:
+            host_env = {
+                **os.environ.copy(),
+                "VLN_CARLA_EXEC_BRIDGE": bridge.endpoint,
+                "VLN_CARLA_EXEC_TOKEN": bridge.token,
+                "VLN_CARLA_EXEC_TIMEOUT_MS": str(
+                    args.kernel_exec_timeout_ms
+                ),
+            }
+            host_client = HostClient([args.kernel_host], env=host_env)
         base["agent_kernel"] = {
             "host_exe": args.kernel_host,
             "bridge_endpoint": bridge.endpoint,
@@ -1540,6 +1625,63 @@ def main(argv: list[str] | None = None, *, after_entry=None) -> int:
             "token_recorded": False,
             "execution_timeout_ms": args.kernel_exec_timeout_ms,
         }
+
+        # Session hook: a caller may perform a real, non-motion verification
+        # before the first Entry movement. A refusal here preserves the
+        # already-issued Entry authorization as a refusal artifact and stops
+        # without commanding the vehicle.
+        if before_entry is not None:
+            try:
+                pre_entry = before_entry(
+                    session=session,
+                    ego=ego,
+                    binding=binding,
+                    completion=completion,
+                    route=route,
+                    authorization=authorization,
+                    initial_state=initial_state,
+                    initial_measurement=initial_measurement,
+                    initial_samples=initial_samples,
+                    initial_verification=initial_verification,
+                    collision_events=collision_events,
+                    collision_monitor=collision_monitor,
+                    host_client=host_client,
+                    bridge=bridge,
+                    out_dir=out_dir,
+                )
+            except Exception as error:
+                pre_entry = {
+                    "ok": False,
+                    "decision": EntryStage.SAFE_STOP,
+                    "reasons": [
+                        f"before_entry exception: {type(error).__name__}: {error}"
+                    ],
+                    "traceback": traceback.format_exc(),
+                }
+            if not isinstance(pre_entry, dict):
+                pre_entry = {
+                    "ok": False,
+                    "decision": EntryStage.SAFE_STOP,
+                    "reasons": ["before_entry must return a mapping"],
+                }
+            base["before_entry"] = pre_entry
+            if not pre_entry.get("ok"):
+                decision = pre_entry.get("decision") or EntryStage.SAFE_STOP
+                if decision not in (EntryStage.REJECTED, EntryStage.SAFE_STOP):
+                    decision = EntryStage.SAFE_STOP
+                return _refusal(
+                    route=route,
+                    decision=decision,
+                    reason="before_entry: "
+                    + (", ".join(pre_entry.get("reasons") or ()) or "refused"),
+                    out_dir=out_dir,
+                    base=base,
+                    exit_code=3 if decision == EntryStage.SAFE_STOP else 2,
+                    completion_id=completion.completion_id,
+                    alignment_authorization_id=(
+                        completion.alignment_authorization_id
+                    ),
+                )
 
         measurement = initial_measurement
         state = initial_state

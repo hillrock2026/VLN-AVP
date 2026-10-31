@@ -1,0 +1,7 @@
+taichu-planner-bridge: planner bridge ready at 127.0.0.1:60865
+taichu-planner-bridge: planner model call completed request_id=1 latency_ms=31829.412 prompt_chars=1047 raw_chars=124
+taichu-planner-bridge: planner model call completed request_id=2 latency_ms=50951.952 prompt_chars=3242 raw_chars=123
+taichu-planner-bridge: planner model call completed request_id=3 latency_ms=55370.089 prompt_chars=5541 raw_chars=181
+taichu-planner-bridge: planner model call completed request_id=4 latency_ms=24508.292 prompt_chars=3120 raw_chars=70
+taichu-planner-bridge: planner model call completed request_id=5 latency_ms=32222.405 prompt_chars=3198 raw_chars=70
+taichu-planner-bridge: planner bridge stopped

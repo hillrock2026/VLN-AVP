@@ -1,0 +1,32 @@
+{
+  "entry_monitor": {
+    "sensor_role": "vln_cap07b04_collision",
+    "sensor_id": 814,
+    "started_frame": 11614661,
+    "started_utc": "2026-10-31T07:29:07.700975+00:00"
+  },
+  "final_monitor": {
+    "sensor_role": "vln_cap07b06_collision",
+    "sensor_id": 815,
+    "started_frame": 11617190,
+    "started_utc": "2026-10-31T07:29:29.870510+00:00",
+    "ended_frame": 11617200,
+    "ended_utc": "2026-10-31T07:29:29.971315+00:00"
+  },
+  "task_events": [],
+  "verification_events": [],
+  "resolved": {
+    "sensor_available": true,
+    "sensor_role": "vln_cap07b04_collision",
+    "monitoring_started_frame": 11614661,
+    "monitoring_started_utc": "2026-10-31T07:29:07.700975+00:00",
+    "first_motion_frame": 11614666,
+    "current_frame": 11617200,
+    "task_event_count": 0,
+    "verification_event_count": 0,
+    "task_events": [],
+    "verification_events": [],
+    "evidence_gap": false,
+    "gap_note": "the Entry collision sensor was attached before the first commanded Entry segment; the stationary spawn-settle ticks before attachment are not covered and are documented as a limitation"
+  }
+}

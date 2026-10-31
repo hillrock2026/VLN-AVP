@@ -27,18 +27,48 @@ IssueRuntimeExecutionAuthority(Runtime&)
 It emits `"host_kind": "kernel"` and a real `execution_status` derived from
 the Kernel's own `ak::ExecutionResult`, not a fabricated value.
 
-### Scope of this first loop
+### Scope of this host
 
-- Executes **only** the test-domain capability `test.echo`, which returns
-  `"[kernel-echo]:" + payload` after passing through the Runtime's
-  capability-registration, submission and observation path.
+- Executes the test-domain capability `test.echo` and the `parking.move`
+  capability declared by `AgentIntent` v1.
+- `parking.move` is simulation-only by default: it validates the intent and
+  echoes it as `stub_completed`. With the optional CARLA execution bridge
+  below it executes a real CARLA segment and returns the measured pre/post
+  vehicle state.
 - The host does NOT bypass authorization: it obtains its port only through
   `IssueRuntimeExecutionAuthority`. It never constructs
   `RuntimePublicApiAdapter` directly.
-- No navigation, `NAVIGATE_TO`, robot, model or hardware capability exists.
-- This proves the **first real Kernel integration loop only**. It is NOT
-  evidence that the K0 gate is closed, that arbitrary consumers can no longer
-  bypass authorization, or that anything is production-safe.
+- No `NAVIGATE_TO`, robot, model or other hardware capability exists. The
+  model, route arbitration and safety gate remain outside the Kernel.
+- This is a minimal integration. It is NOT evidence that the K0 gate is
+  closed, that arbitrary consumers can no longer bypass authorization, or
+  that anything is production-safe.
+
+### Optional CARLA execution bridge (M1-VLN-CARLA-02)
+
+The C++ host cannot import the CARLA Python API. When real CARLA execution is
+required, the host is started with a loopback execution bridge:
+
+| Variable | Meaning |
+|---|---|
+| `VLN_CARLA_EXEC_BRIDGE` | `host:port` of the CARLA execution bridge (`127.0.0.1:<ephemeral>`). |
+| `VLN_CARLA_EXEC_TOKEN` | Required non-blank bridge token. Never logged. |
+| `VLN_CARLA_EXEC_TIMEOUT_MS` | Per-execution timeout, default `180000`, max `600000`. |
+
+With the bridge configured, the registered `parking.move` invoker calls the
+bridge synchronously and returns only after the CARLA controller has stopped
+the vehicle and the real post-execution state was read. The response is output
+v2 (`execution_mode="carla"`) and the host recomputes `moved_m` from the real
+pre/post states. Without the bridge, the original simulation-only stub is used
+unchanged. An invalid bridge configuration makes the host exit with code `3`
+instead of silently falling back to the stub.
+
+The bridge is an execution transport, not an authorization bypass: the host
+still reaches the invoker only through `IssueRuntimeExecutionAuthority` →
+`Port().Submit/Observe` → `Runtime::Run`. The bridge additionally requires a
+token and a single-use, round-scoped execution permit. The POSIX build is
+supported; a Windows host build returns a deterministic failure if a bridge is
+configured.
 
 ### Known limits (do not overstate)
 

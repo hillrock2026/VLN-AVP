@@ -48,6 +48,7 @@ performs the one POST the caller asks for.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -162,6 +163,7 @@ def _build_payload(
     max_new_tokens: int,
     temperature: float,
     enable_thinking: Optional[bool],
+    stop: Optional[list[str]] = None,
 ) -> bytes:
     """Serialise the confirmed ``ChatRequest`` fields for one request."""
 
@@ -175,6 +177,8 @@ def _build_payload(
         payload["model"] = model_name
     if enable_thinking is not None:
         payload["enable_thinking"] = bool(enable_thinking)
+    if stop:
+        payload["stop"] = list(stop)
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
 
 
@@ -335,6 +339,7 @@ class ZDTaichuServerBackend:
     max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS
     temperature: float = DEFAULT_TEMPERATURE
     enable_thinking: Optional[bool] = False
+    stop: Optional[list[str]] = None
     model_name: Optional[str] = None
     _endpoint: str = field(init=False, repr=False, compare=False)
 
@@ -364,6 +369,7 @@ class ZDTaichuServerBackend:
             max_new_tokens=self.max_new_tokens,
             temperature=self.temperature,
             enable_thinking=self.enable_thinking,
+            stop=self.stop,
         )
         api_key = _optional_api_key(self.api_key_env)
         return _assistant_content(_post_once(self._endpoint, api_key, body, self.timeout))
@@ -382,6 +388,19 @@ class ZDTaichuServerBackend:
         the call is made once and a redirect is refused rather than followed.
         """
 
+        return self.generate_image_with_metadata(image_path, instruction)[0]
+
+    def generate_image_with_metadata(
+        self, image_path: str, instruction: str
+    ) -> tuple[str, dict]:
+        """One image request plus the response identifiers the evidence needs.
+
+        The network path is exactly the same as :meth:`generate_image`: one
+        POST, one attempt, no redirects, image by data URI. The returned
+        metadata is read from the server's own response and request body; it is
+        evidence, not a second inference call.
+        """
+
         part = load_image_part(image_path)
         messages = build_image_messages(part, instruction)
         body = _build_payload(
@@ -390,6 +409,26 @@ class ZDTaichuServerBackend:
             max_new_tokens=self.max_new_tokens,
             temperature=self.temperature,
             enable_thinking=self.enable_thinking,
+            stop=self.stop,
         )
         api_key = _optional_api_key(self.api_key_env)
-        return _assistant_content(_post_once(self._endpoint, api_key, body, self.timeout))
+        payload = _post_once(self._endpoint, api_key, body, self.timeout)
+        content = _assistant_content(payload)
+        choice = (payload.get("choices") or [{}])[0]
+        message = choice.get("message") if isinstance(choice, dict) else None
+        message = message if isinstance(message, dict) else {}
+        metadata = {
+            "server_response_id": payload.get("id"),
+            "response_model": payload.get("model"),
+            "finish_reason": choice.get("finish_reason")
+            if isinstance(choice, dict)
+            else None,
+            "usage": payload.get("usage"),
+            "reasoning_content": message.get("reasoning_content"),
+            "request_body_sha256": hashlib.sha256(body).hexdigest(),
+            "assistant_content_sha256": hashlib.sha256(
+                content.encode("utf-8")
+            ).hexdigest(),
+            "image": part.safe_description(),
+        }
+        return content, metadata

@@ -32,6 +32,13 @@
 
 #include <agent_kernel/agent/runtime/runtime_interaction_port.hpp>
 
+namespace ak {
+
+// Forward declaration only (no Session type crosses the boundary).
+class Session;
+
+}  // namespace ak
+
 namespace ak::runtime {
 
 // Forward declaration only (no Runtime type crosses the boundary).
@@ -79,6 +86,11 @@ private:
     friend RuntimeExecutionAuthorityHandle
     IssueRuntimeExecutionAuthority(ak::runtime::Runtime& runtime);
 
+    friend RuntimeExecutionAuthorityHandle
+    IssueRuntimeExecutionAuthority(ak::runtime::Runtime& runtime,
+                                   ak::Session& persistent_session,
+                                   bool keep_session_active);
+
     explicit RuntimeExecutionAuthorityHandle(
         std::unique_ptr<ak::agent::RuntimeInteractionPort> port) noexcept
         : port_(std::move(port)) {}
@@ -91,5 +103,14 @@ private:
 // callers link agent_kernel_runtime_integration.
 [[nodiscard]] RuntimeExecutionAuthorityHandle
 IssueRuntimeExecutionAuthority(ak::runtime::Runtime& runtime);
+
+// Persistent-Session production issuance. The handle is bound to the same
+// RuntimePublicApiAdapter, but each Submit creates a new Workflow/Task in the
+// supplied Session and runs only that Workflow. The Session MUST outlive the
+// handle and the adapter.
+[[nodiscard]] RuntimeExecutionAuthorityHandle
+IssueRuntimeExecutionAuthority(ak::runtime::Runtime& runtime,
+                               ak::Session& persistent_session,
+                               bool keep_session_active);
 
 }  // namespace ak::runtime_integration

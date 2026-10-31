@@ -1,0 +1,84 @@
+{
+  "schema": "vln.parking.entry_result.v1",
+  "skill": "vln.parking.entry",
+  "stage": "ENTRY_COMPLETED",
+  "task_id": "cap07b-04",
+  "bay_id": "bay03",
+  "slot_node_id": "park_slot",
+  "approach_node_id": "park_entry",
+  "route_id": "bay03-entry-7570949dfd31",
+  "route_hash": "7570949dfd3112c378ddf95b6872b2d5eb4cd5d3adbd029f932048c4b7b84694",
+  "entry_valid": true,
+  "completed": true,
+  "identity_verified": true,
+  "authorization_verified": true,
+  "checks": {
+    "target_identity_matches_binding": true,
+    "route_identity_matches_authorization": true,
+    "entry_authorization_active": true,
+    "vehicle_state_valid": true,
+    "route_progress_terminal": true,
+    "terminal_position": true,
+    "terminal_heading": true,
+    "footprint_inside_bay": true,
+    "boundary_clearance": true,
+    "obstacle_clearance": true,
+    "route_deviation": true,
+    "entry_corridor": true,
+    "stopped": true,
+    "stop_stable": true,
+    "no_collision": true
+  },
+  "reasons": [],
+  "measurement": {
+    "x": -9.4864,
+    "y": -21.2488,
+    "yaw_rad": -3.081275,
+    "yaw_deg": -176.5441,
+    "speed_mps": 0.0,
+    "stopped": true,
+    "route_s": 8.0628,
+    "cross_track_m": 0.0512,
+    "route_deviation_m": 0.0512,
+    "progress_m": 8.0628,
+    "remaining_m": 0.0136,
+    "distance_to_target_m": 0.053,
+    "heading_error_deg": 3.4559,
+    "lateral_error_m": -0.0512,
+    "longitudinal_error_m": -0.0136,
+    "footprint_corners": [
+      [
+        -11.9282,
+        -22.338
+      ],
+      [
+        -12.0415,
+        -20.4614
+      ],
+      [
+        -7.0446,
+        -20.1596
+      ],
+      [
+        -6.9313,
+        -22.0362
+      ]
+    ],
+    "footprint_inside_bay": true,
+    "boundary_clearance_m": 0.052,
+    "obstacle_clearance_m": 0.751,
+    "reference_to_route_m": 0.0512,
+    "footprint_corners_inside_corridor": true,
+    "stability": {
+      "samples": 5,
+      "max_speed_mps": 0.0,
+      "position_drift_m": 0.0,
+      "stable": true
+    },
+    "collision_count": 0
+  },
+  "stage_history": [
+    "ENTRY_PENDING",
+    "ENTRY_COMPLETED"
+  ]
+}

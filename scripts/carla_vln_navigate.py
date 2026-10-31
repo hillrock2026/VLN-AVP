@@ -162,18 +162,29 @@ from vln.carla.underground_carpark_parking import (  # noqa: E402
 )
 from vln.client import HostClient, build_request  # noqa: E402
 from vln.intent import AgentIntent, Target  # noqa: E402
-from vln.ipc.envelope import HostKind  # noqa: E402
+from vln.ipc.envelope import HostKind, Request  # noqa: E402
 from vln.nav import VehiclePose  # noqa: E402
 from vln.nav.binding_runtime import (  # noqa: E402
     BindingRuntimeError,
     load_binding_artifact,
     resolve_bound_goal,
 )
+from vln.nav.visual_recovery import (  # noqa: E402
+    RecoveryBudget,
+    RecoveryRefused,
+    VisualRecoveryAction,
+    VisualRecoveryMachine,
+    classify_visual_uncertainty,
+    ensure_context_revision_advanced,
+    reobservation_note,
+    require_new_observation,
+)
 from vln.carla.target_approach import (  # noqa: E402
     approach_node_for_slot,
     evaluate_target_approach,
 )
 from vln.stm import NavigationTaskMemory, RoundOutcome  # noqa: E402
+from vln.vlm.host_planner_client import HostPlannerModelClient  # noqa: E402
 from vln.vlm.image_path_client import ServerImageModelClient  # noqa: E402
 from vln.vlm.nav_prompt import Variant, build_nav_prompt  # noqa: E402
 from vln.vlm.server_client import ZDTaichuServerBackend  # noqa: E402
@@ -210,6 +221,8 @@ EXIT_SETUP = 4
 EXIT_UNEXPECTED = 5
 
 TASK_LABEL = "M1-VLN-CARLA-06"
+# Parking-domain progress snapshot carried in the Agent-Kernel Context.
+PARKING_CONTEXT: dict | None = None
 PROJECTION_WINDOW_M = 30.0
 PRECHECK_RAY_Z_OFFSETS = None
 PRECHECK_LATERAL_OFFSETS = None
@@ -1108,6 +1121,540 @@ def _prompt_for(
     return (
         f"用户导航指令：{instruction}\n{state_text}{history_block}\n\n{nav_prompt}"
     )
+
+
+def _route_facts_for_prompt(
+    *,
+    pose,
+    target: str,
+    expected_node_id,
+    goal_node_id: str,
+    args,
+    excluded_nodes,
+):
+    """Build the advisory route block for one prompt from the real pose."""
+
+    try:
+        candidate_facts = route_candidates(
+            GRAPH,
+            pose,
+            goal_node_id,
+            expected_node_id=expected_node_id,
+            max_node_distance_m=MAX_NODE_DISTANCE_M,
+            straight_tolerance_deg=STRAIGHT_TOLERANCE_DEG,
+            turn_limit_deg=TURN_LIMIT_DEG,
+            invert_turn_direction=INVERT_TURN_DIRECTION,
+            excluded_nodes=excluded_nodes,
+        )
+        if candidate_facts.ok and candidate_facts.candidates:
+            facts = build_route_facts_from_candidates(
+                node_id=candidate_facts.matched_node_id,
+                matched_node_distance_m=candidate_facts.matched_node_distance_m,
+                pose=pose,
+                candidates=candidate_facts.candidates,
+                goal_node_id=goal_node_id,
+            )
+            return facts, format_route_facts(facts, target=target)
+        return candidate_facts.to_metadata(), ""
+    except Exception as exc:  # prompt facts are advisory context only
+        return {"error": f"{type(exc).__name__}: {exc}"}, ""
+
+
+def _model_request_evidence(
+    calls,
+    image_sha: str,
+    *,
+    inference_started: str,
+    inference_finished: str,
+    planner_client,
+) -> dict:
+    """Build the existing request evidence, including the final model prompt."""
+
+    request = observe01c.request_evidence(calls, image_sha)
+    request["inference_started_utc"] = inference_started
+    request["inference_finished_utc"] = inference_finished
+    if planner_client is not None:
+        request["model_path"] = "kernel_planner_bridge"
+        exchange = planner_client.last_exchange
+        if exchange is not None:
+            # The actual HTTP request happens in the bridge process, so the
+            # in-process recorder sees no call. The bridge hashes the exact
+            # image file it reads and the Host forwards that hash; it is the
+            # same evidence the recorder would have produced.
+            bridge_image_sha = exchange.output.get("image_sha256")
+            request["request_count"] = 1
+            request["request_evidence_source"] = "kernel_planner_bridge"
+            request["image_path"] = exchange.output.get("image_path")
+            request["image_sha256_in_request"] = bridge_image_sha
+            request["image_sha256_matches_frame"] = (
+                bridge_image_sha == image_sha
+            )
+            request["payload_prompt_sha256"] = exchange.output.get(
+                "prompt_sha256"
+            )
+            server_response = exchange.output.get("server_response")
+            if isinstance(server_response, dict):
+                request["server_response"] = server_response
+                request["server_response_id"] = server_response.get(
+                    "server_response_id"
+                )
+                request["response_model"] = server_response.get("response_model")
+                request["finish_reason"] = server_response.get("finish_reason")
+                request["usage"] = server_response.get("usage")
+            request["planner_request_id"] = exchange.planner_request_id
+            request["planner_artifact_id"] = exchange.planning_artifact_id
+            request["planner_context_revision"] = exchange.context_revision
+            request["raw_model_output_sha256"] = exchange.output.get(
+                "raw_output_sha256"
+            )
+            request["bridge_latency_ms"] = exchange.output.get("bridge_latency_ms")
+            request["final_prompt"] = exchange.output.get("prompt")
+            request["final_prompt_sha256"] = exchange.output.get("prompt_sha256")
+            request["context_selection"] = exchange.output.get("context_selection")
+    return request
+
+
+def _safe_stop_for_reobservation(session, ego) -> dict:
+    """Bring the vehicle to a real stop before taking a new observation."""
+
+    before = _state_metadata(session, ego, with_road=True)
+    session.brake_to_stop(ego, max_ticks=60)
+    after = _state_metadata(session, ego, with_road=True)
+    stopped = float(after["speed"]) <= 0.1
+    return {
+        "before_speed_mps": before["speed"],
+        "after_speed_mps": after["speed"],
+        "stopped": stopped,
+        "max_ticks": 60,
+    }
+
+
+def _attempt_visual_recovery(
+    *,
+    machine: VisualRecoveryMachine,
+    session,
+    ego,
+    out_dir,
+    args,
+    host_client,
+    host_planner: bool,
+    host_session_id,
+    host_context_revision,
+    task_memory,
+    round_index: int,
+    target: str,
+    route_goal_node_id: str,
+    expected_node_id,
+    excluded_nodes,
+    initial_outcome,
+    initial_frame,
+    initial_state: dict,
+    initial_image_path: str,
+    initial_image_sha: str,
+    initial_image_size: int,
+    initial_observation,
+    initial_request: dict,
+    initial_planner_client,
+    initial_intent_id: str,
+    last_verified_identity,
+) -> dict:
+    """Stop, re-observe and re-infer until the budget or the verification ends.
+
+    Every retry runs the original ``generate_and_decide`` chain. This helper
+    never arbitrates a route and never asks for execution; the caller only
+    reaches those steps after the returned outcome is a verified success.
+    """
+
+    evidence: list[dict] = []
+    initial_kind = classify_visual_uncertainty(
+        initial_outcome,
+        expected_identity=target,
+        previously_confirmed_identity=last_verified_identity,
+    )
+    initial_exchange = None
+    if initial_planner_client is not None:
+        exchange = initial_planner_client.last_exchange
+        if exchange is not None:
+            initial_exchange = exchange.to_metadata()
+    evidence.append(
+        {
+            "attempt": 0,
+            "phase": "initial_failure",
+            "uncertainty_type": initial_kind,
+            "observation": {
+                "frame": initial_frame.to_metadata(),
+                "state": initial_state,
+                "image_path": initial_image_path,
+                "image_sha256": initial_image_sha,
+                "image_size_bytes": initial_image_size,
+                "prompt": initial_observation.prompt,
+            },
+            "context_revision": host_context_revision,
+            "request": initial_request,
+            "planner": initial_exchange,
+            "decision": initial_outcome.to_metadata(),
+        }
+    )
+
+    current_outcome = initial_outcome
+    current_kind = initial_kind
+    current_frame = initial_frame
+    current_state = initial_state
+    current_image_path = initial_image_path
+    current_image_sha = initial_image_sha
+    current_image_size = initial_image_size
+    current_observation = initial_observation
+    current_intent_id = initial_intent_id
+    current_request = initial_request
+    current_planner_client = initial_planner_client
+    current_context_revision = host_context_revision
+    inference_started = initial_request.get("inference_started_utc")
+    inference_finished = initial_request.get("inference_finished_utc")
+    inference_wall_s = 0.0
+
+    while True:
+        action = machine.on_failure(
+            current_kind,
+            reason=(
+                "initial visual rejection"
+                if current_kind is not None
+                else "non-recoverable failure"
+            ),
+        )
+        if action != VisualRecoveryAction.REQUEST_REOBSERVATION:
+            return {
+                "recovered": False,
+                "outcome": current_outcome,
+                "frame": current_frame,
+                "state": current_state,
+                "image_path": current_image_path,
+                "image_sha": current_image_sha,
+                "image_size": current_image_size,
+                "observation": current_observation,
+                "intent_id": current_intent_id,
+                "request": current_request,
+                "planner_client": current_planner_client,
+                "context_revision": current_context_revision,
+                "inference_started_utc": inference_started,
+                "inference_finished_utc": inference_finished,
+                "inference_wall_s": inference_wall_s,
+                "recovery": {
+                    **machine.to_metadata(),
+                    "attempts": evidence,
+                    "recovered": False,
+                },
+            }
+
+        attempt_number = machine.attempt_count
+        try:
+            stop_report = _safe_stop_for_reobservation(session, ego)
+        except Exception as exc:
+            machine.refuse(f"safe stop failed: {type(exc).__name__}: {exc}")
+            break
+        if not stop_report["stopped"]:
+            machine.refuse(
+                "vehicle did not reach a stopped state before re-observation: "
+                f"speed={stop_report['after_speed_mps']} m/s"
+            )
+            break
+
+        # Record the rejected judgement in STM before the retry prompt is built,
+        # so the new prompt sees the failure as history, not as current evidence.
+        task_memory.record_carla_round(
+            round_index=round_index,
+            intent_id=current_intent_id,
+            action=None,
+            target=None,
+            visual_decision=current_outcome.decision,
+            directive=None,
+            outcome=RoundOutcome.REJECTED,
+            task_target=target,
+            execution=None,
+            error=(
+                f"{current_outcome.status}: {current_outcome.error_type}: "
+                f"{current_outcome.error_message}"
+            ),
+        )
+
+        try:
+            (
+                new_frame,
+                new_state,
+                new_image_path,
+                new_image_sha,
+                new_image_size,
+                _camera_meta,
+            ) = _capture_round_observation(
+                session,
+                ego,
+                out_dir,
+                (
+                    f"round_{round_index:02d}_vr{attempt_number:02d}"
+                    "_frame_%06d.png"
+                ),
+                fov=70.0,
+                camera_role=f"{CAM_ROLE}_r{round_index}_vr{attempt_number}",
+            )
+            new_frame_guard = require_new_observation(
+                previous_frame_id=current_frame.frame_id,
+                previous_image_sha256=current_image_sha,
+                new_frame_id=new_frame.frame_id,
+                new_image_sha256=new_image_sha,
+            )
+        except RecoveryRefused as exc:
+            machine.refuse(str(exc))
+            break
+        except Exception as exc:
+            machine.refuse(
+                f"new observation failed: {type(exc).__name__}: {exc}"
+            )
+            break
+
+        new_pose = VehiclePose(
+            x=new_state["x"],
+            y=new_state["y"],
+            heading=math.radians(new_state["yaw"]),
+        )
+        note = reobservation_note(current_kind, attempt_number)
+        target_note = args.target_note.format(target=target) + "\n" + note
+        history_context = task_memory.render_compact_context(max_chars=2400)
+        route_facts, route_context = _route_facts_for_prompt(
+            pose=new_pose,
+            target=target,
+            expected_node_id=expected_node_id,
+            goal_node_id=route_goal_node_id,
+            args=args,
+            excluded_nodes=excluded_nodes,
+        )
+        recovery_intent_id = f"{initial_intent_id}-vr{attempt_number}"
+        prompt = _prompt_for(
+            new_state,
+            target,
+            args.target_kind,
+            recovery_intent_id,
+            args.instruction,
+            target_note,
+            history_context=history_context,
+            route_context=route_context,
+        )
+        new_observation = CarlaVisualObservation(
+            frame=new_frame,
+            image_path=new_image_path,
+            image_sha256=new_image_sha,
+            image_size_bytes=new_image_size,
+            pose=new_pose,
+            instruction=args.instruction,
+            prompt=prompt,
+        )
+
+        planner_client = None
+        new_outcome = None
+        request_record = None
+        started_utc = utc_now()
+        started_monotonic = time.monotonic()
+        calls, restore_opener = observe01c.install_request_recorder()
+        try:
+            if host_planner:
+                planner_client = HostPlannerModelClient(
+                    host_client,
+                    session_id=host_session_id,
+                    context_revision=current_context_revision,
+                    request_id_prefix=(
+                        f"cap08b-vr-r{round_index}-a{attempt_number}"
+                    ),
+                    domain={
+                        "capability": "planner.plan",
+                        "parking": PARKING_CONTEXT,
+                        "round": round_index,
+                        "intent_id": recovery_intent_id,
+                        "trigger": "visual_uncertainty",
+                        "uncertainty_type": current_kind,
+                        "attempt": attempt_number,
+                        "previous_intent_id": current_intent_id,
+                        "previous_frame_id": current_frame.frame_id,
+                        "previous_image_sha256": current_image_sha,
+                        "new_frame_id": new_frame.frame_id,
+                        "new_image_sha256": new_image_sha,
+                        "previous_error_type": current_outcome.error_type,
+                        "previous_error_message": current_outcome.error_message,
+                        "target": target,
+                        "target_kind": args.target_kind,
+                        "pose": {
+                            "x": new_state["x"],
+                            "y": new_state["y"],
+                            "yaw": new_state["yaw"],
+                        },
+                        "frame_id": new_frame.frame_id,
+                        "image_sha256": new_image_sha,
+                        "route_goal_node_id": route_goal_node_id,
+                    },
+                )
+                model = planner_client
+            else:
+                model = ServerImageModelClient(
+                    backend=ZDTaichuServerBackend(
+                        max_new_tokens=max(4096, args.max_new_tokens),
+                        timeout=args.timeout,
+                        temperature=0.0,
+                        enable_thinking=args.enable_thinking,
+                        stop=None if args.enable_thinking else ["</think>"],
+                    )
+                )
+            new_outcome = generate_and_decide(
+                model,
+                new_observation,
+                expected_identity=target,
+                intent_id=recovery_intent_id,
+            )
+        except Exception as exc:  # model construction/transport boundary
+            new_outcome = None
+            planner_error = f"{type(exc).__name__}: {exc}"
+        else:
+            planner_error = None
+        finally:
+            finished_utc = utc_now()
+            wall_s = time.monotonic() - started_monotonic
+            if restore_opener is not None:
+                restore_opener()
+                restore_opener = None
+
+        revision_ok = False
+        if planner_client is not None:
+            updated_revision = planner_client.context_revision_after
+            try:
+                current_context_revision = ensure_context_revision_advanced(
+                    current_context_revision, updated_revision
+                )
+                revision_ok = True
+            except RecoveryRefused as exc:
+                planner_error = str(exc)
+            request_record = _model_request_evidence(
+                calls,
+                new_image_sha,
+                inference_started=started_utc,
+                inference_finished=finished_utc,
+                planner_client=planner_client,
+            )
+        else:
+            request_record = _model_request_evidence(
+                calls,
+                new_image_sha,
+                inference_started=started_utc,
+                inference_finished=finished_utc,
+                planner_client=None,
+            )
+            revision_ok = True
+
+        exchange_meta = None
+        if planner_client is not None and planner_client.last_exchange is not None:
+            exchange_meta = planner_client.last_exchange.to_metadata()
+        evidence.append(
+            {
+                "attempt": attempt_number,
+                "phase": "reobservation",
+                "uncertainty_type": current_kind,
+                "recovery_note": note,
+                "stop": stop_report,
+                "new_frame": new_frame_guard,
+                "observation": {
+                    "camera": _camera_meta,
+                    "frame": new_frame.to_metadata(),
+                    "state": new_state,
+                    "image_path": new_image_path,
+                    "image_sha256": new_image_sha,
+                    "image_size_bytes": new_image_size,
+                    "prompt": prompt,
+                    "route_facts": route_facts,
+                },
+                "context_revision": current_context_revision,
+                "revision_advanced": revision_ok,
+                "request": request_record,
+                "planner": exchange_meta,
+                "decision": (
+                    None if new_outcome is None else new_outcome.to_metadata()
+                ),
+                "planner_error": planner_error,
+            }
+        )
+
+        if new_outcome is None:
+            machine.refuse(planner_error or "recovery model call failed")
+            break
+        if not revision_ok:
+            machine.refuse(planner_error or "context revision did not advance")
+            break
+        if new_outcome.status == SUCCESS:
+            machine.on_success()
+            return {
+                "recovered": True,
+                "outcome": new_outcome,
+                "frame": new_frame,
+                "state": new_state,
+                "image_path": new_image_path,
+                "image_sha": new_image_sha,
+                "image_size": new_image_size,
+                "observation": new_observation,
+                "intent_id": recovery_intent_id,
+                "request": request_record,
+                "planner_client": planner_client,
+                "context_revision": current_context_revision,
+                "inference_started_utc": started_utc,
+                "inference_finished_utc": finished_utc,
+                "inference_wall_s": wall_s,
+                "recovery": {
+                    **machine.to_metadata(),
+                    "attempts": evidence,
+                    "recovered": True,
+                },
+                "target_note": target_note,
+                "route_facts": route_facts,
+                "route_context": route_context,
+            }
+
+        # The retry failed too. Classify it for the next bounded attempt; a
+        # structural/transport failure returns None and is refused next loop.
+        current_outcome = new_outcome
+        current_frame = new_frame
+        current_state = new_state
+        current_image_path = new_image_path
+        current_image_sha = new_image_sha
+        current_image_size = new_image_size
+        current_observation = new_observation
+        current_intent_id = recovery_intent_id
+        current_request = request_record
+        current_planner_client = planner_client
+        current_kind = classify_visual_uncertainty(
+            new_outcome,
+            expected_identity=target,
+            previously_confirmed_identity=last_verified_identity,
+        )
+        inference_started = started_utc
+        inference_finished = finished_utc
+        inference_wall_s = wall_s
+
+    # Safety stop / new-frame / context guards refused further recovery.
+    return {
+        "recovered": False,
+        "outcome": current_outcome,
+        "frame": current_frame,
+        "state": current_state,
+        "image_path": current_image_path,
+        "image_sha": current_image_sha,
+        "image_size": current_image_size,
+        "observation": current_observation,
+        "intent_id": current_intent_id,
+        "request": current_request,
+        "planner_client": current_planner_client,
+        "context_revision": current_context_revision,
+        "inference_started_utc": inference_started,
+        "inference_finished_utc": inference_finished,
+        "inference_wall_s": inference_wall_s,
+        "recovery": {
+            **machine.to_metadata(),
+            "attempts": evidence,
+            "recovered": False,
+        },
+    }
 
 
 def _stm_execution_feedback(execution: dict | None) -> dict | None:
@@ -2293,6 +2840,36 @@ def _validate_kernel_correlation(response, request, intent, transaction):
     return None, output
 
 
+def _kernel_session_control(
+    host_client,
+    capability_id: str,
+    payload: dict,
+    request_id: str,
+):
+    """Send one Kernel Host session control request (create/get/close).
+
+    Returns ``(response, output_object_or_None)``. The Host owns the real
+    ``ak::Session`` and ``ak::context::Context``; this helper only carries the
+    control request over the existing IPC protocol.
+    """
+
+    request = Request(
+        request_id=request_id,
+        capability_id=capability_id,
+        payload=json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+    )
+    response = host_client.send(request)
+    output = None
+    if isinstance(response.output, str):
+        try:
+            parsed = json.loads(response.output)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, dict):
+            output = parsed
+    return response, output
+
+
 def _execute_segment_via_kernel(
     session,
     ego,
@@ -2303,6 +2880,8 @@ def _execute_segment_via_kernel(
     intent_id,
     host_client,
     bridge,
+    host_session_id=None,
+    host_context_revision=None,
 ) -> dict:
     """Execute one arbitrated segment through the real Kernel host.
 
@@ -2455,7 +3034,23 @@ def _execute_segment_via_kernel(
             "pre_state": pre_state,
         },
     )
-    request = build_request(intent, request_id=request_id)
+    execution_domain = {
+        "capability": "parking.move",
+        "round": round_index,
+        "intent_id": intent.intent_id,
+        "target_node_id": target_node_id,
+        "selected_edge": list(arbitration.selected_edge),
+        "route_node_ids": route_node_ids,
+        "direction": decision_direction,
+        "parking": PARKING_CONTEXT,
+    }
+    request = build_request(
+        intent,
+        request_id=request_id,
+        session_id=host_session_id,
+        expected_context_revision=host_context_revision,
+        domain=execution_domain,
+    )
     kernel = {
         "called": True,
         "capability_id": request.capability_id,
@@ -2469,6 +3064,9 @@ def _execute_segment_via_kernel(
         ),
         "route_target_node_id": target_node_id,
         "route_node_ids": route_node_ids,
+        "session_id": host_session_id,
+        "expected_context_revision": host_context_revision,
+        "domain": execution_domain,
     }
 
     started = time.monotonic()
@@ -2510,7 +3108,22 @@ def _execute_segment_via_kernel(
         "execution_status": response.execution_status,
         "error": None if response.error is None else dict(response.error),
         "output": response.output,
+        "session_id": response.session_id,
+        "session_state": response.session_state,
+        "task_id": response.task_id,
+        "workflow_id": response.workflow_id,
+        "context_revision": response.context_revision,
+        "turn": response.turn,
+        "context_updated": response.context_updated,
     }
+    kernel["context_before"] = (
+        None
+        if response.context_before is None
+        else dict(response.context_before)
+    )
+    kernel["context_after"] = (
+        None if response.context_after is None else dict(response.context_after)
+    )
     kernel["bridge_transaction"] = transaction
 
     validation_error, output = _validate_kernel_correlation(
@@ -2644,7 +3257,13 @@ def _redecision_history_note(
     return " ".join(parts)
 
 
-def run(args) -> tuple[int, dict]:
+def run(args, runtime: dict | None = None) -> tuple[int, dict]:
+    runtime = dict(runtime or {})
+    keep_runtime = bool(runtime.get("keep_runtime"))
+    provided_session = runtime.get("session")
+    provided_ego = runtime.get("ego")
+    provided_host = runtime.get("host_client")
+    provided_bridge = runtime.get("bridge")
     out_dir = Path(args.output_dir) if args.output_dir else REPO_ROOT / "docs" / "evidence" / "carla-01e"
     out_dir.mkdir(parents=True, exist_ok=True)
     task_label = getattr(args, "task_label", TASK_LABEL)
@@ -2667,7 +3286,14 @@ def run(args) -> tuple[int, dict]:
     # A route to the current parking target must not be planned through a
     # different declared parking target (the undirected graph would otherwise
     # offer a long loop through the other bay's slot).
-    other_parking_goals = PARKING_GOAL_NODES - {route.goal_node_id}
+    # Only exclude parking goals that exist in this scenario's graph. The
+    # parking-slot node belongs to the carpark graph and must not be passed as
+    # an excluded node to a Town10 route arbitration.
+    other_parking_goals = {
+        node
+        for node in (PARKING_GOAL_NODES - {route.goal_node_id})
+        if GRAPH.has_node(node)
+    }
     route_name = args.route_name or (
         f"{route.start_node_id}-to-{route.goal_node_id}"
     )
@@ -2685,6 +3311,8 @@ def run(args) -> tuple[int, dict]:
                 f"{MAX_NODE_DISTANCE_M:.1f} m from the start node"
             )
         spawn_pose_source = "explicit_near_start_node"
+    host_session_id = runtime.get("host_session_id")
+    host_context_revision = runtime.get("host_context_revision")
     kernel_exe = None
     requested_kernel = getattr(args, "kernel_host", None)
     if requested_kernel:
@@ -2700,6 +3328,16 @@ def run(args) -> tuple[int, dict]:
         if not (os.path.isfile(kernel_exe) and os.access(kernel_exe, os.X_OK)):
             raise ValueError(f"--kernel-host is not an executable file: {kernel_exe}")
         kernel_exe = os.path.abspath(kernel_exe)
+    host_planner = bool(getattr(args, "host_planner", False))
+    if host_planner:
+        if not kernel_exe:
+            raise ValueError("--host-planner requires --kernel-host")
+        if not os.environ.get("VLN_TAICHU_PLANNER_BRIDGE"):
+            raise ValueError(
+                "--host-planner requires VLN_TAICHU_PLANNER_BRIDGE=host:port "
+                "(and VLN_TAICHU_PLANNER_TOKEN) in the environment; the "
+                "compiled Host owns the Kernel planner bridge configuration"
+            )
     approach_only = bool(getattr(args, "target_approach_only", False))
     binding_artifact = getattr(args, "target_binding_artifact", None)
     if approach_only and binding_artifact is None:
@@ -2899,10 +3537,16 @@ def run(args) -> tuple[int, dict]:
     bridge = None
     exit_code = EXIT_UNEXPECTED
     try:
-        world = client.get_world()
-        if not world.get_map().name.endswith(MAP_NAME):
-            client.load_world(MAP_NAME)
-        session = nav01b.Session(args.host, args.port, str(out_dir), map_name=MAP_NAME)
+        if provided_session is not None:
+            session = provided_session
+            world = session.world
+        else:
+            world = client.get_world()
+            if not world.get_map().name.endswith(MAP_NAME):
+                client.load_world(MAP_NAME)
+            session = nav01b.Session(
+                args.host, args.port, str(out_dir), map_name=MAP_NAME
+            )
         result["meta"]["server_version"] = session.client.get_server_version()
         result["meta"]["map_loaded"] = session.world.get_map().name
         if not result["meta"]["map_loaded"].endswith(MAP_NAME):
@@ -2930,26 +3574,41 @@ def run(args) -> tuple[int, dict]:
         result["goal_spec"] = goal_spec.to_metadata()
         # Validate before spawning: a downward ray at a node would otherwise
         # hit the ego's own roof. Same rule as 01B.
-        valid, waypoint_report = nav01b.validate_waypoints(
-            session,
-            path,
-            nodes=NODES,
-            expected_floor=FLOOR_Z,
-            floor_probe_z=FLOOR_PROBE_Z,
-        )
-        result["waypoint_validation"] = waypoint_report
+        if provided_ego is not None:
+            # The shared ego is already parked on the start node, so a
+            # downward floor ray hits its roof instead of the garage floor.
+            # The route nodes were validated in the accepted standalone runs;
+            # per-tick floor and safety guards still run during execution.
+            result["waypoint_validation"] = {
+                "skipped": "existing_ego_occupies_floor_probes",
+                "path": path,
+            }
+            valid = True
+        else:
+            valid, waypoint_report = nav01b.validate_waypoints(
+                session,
+                path,
+                nodes=NODES,
+                expected_floor=FLOOR_Z,
+                floor_probe_z=FLOOR_PROBE_Z,
+            )
+            result["waypoint_validation"] = waypoint_report
         if not valid:
             raise RuntimeError("waypoint floor validation failed; refusing to drive")
 
-        session.destroy_leftovers()
-        ego = session.spawn_vehicle(
-            EGO_ROLE,
-            spawn_x,
-            spawn_y,
-            float(args.spawn_z),
-            start_yaw_deg,
-        )
-        session.tick(40)
+        if provided_ego is not None:
+            ego = provided_ego
+            session.tick(5)
+        else:
+            session.destroy_leftovers()
+            ego = session.spawn_vehicle(
+                EGO_ROLE,
+                spawn_x,
+                spawn_y,
+                float(args.spawn_z),
+                start_yaw_deg,
+            )
+            session.tick(40)
         spawn_state = _state_metadata(session, ego, with_road=True)
         result["meta"]["spawn_pose"] = spawn_state
         with _RUN_COLLISION_LOCK:
@@ -3061,21 +3720,88 @@ def run(args) -> tuple[int, dict]:
                         "brake_error": brake_error,
                     }
 
-            bridge = CarlaExecutionBridge(
-                _handle_kernel_execution,
-                request_timeout_s=max(30.0, args.max_segment_sim_seconds + 30.0),
-            )
-            bridge.start()
-            host_env = os.environ.copy()
-            host_env["VLN_CARLA_EXEC_BRIDGE"] = bridge.endpoint
-            host_env["VLN_CARLA_EXEC_TOKEN"] = bridge.token
-            host_env["VLN_CARLA_EXEC_TIMEOUT_MS"] = str(args.kernel_exec_timeout_ms)
-            host_client = HostClient([kernel_exe], env=host_env)
+            if provided_bridge is not None:
+                bridge = provided_bridge
+                bridge.set_handler(_handle_kernel_execution)
+            else:
+                bridge = CarlaExecutionBridge(
+                    _handle_kernel_execution,
+                    request_timeout_s=max(
+                        30.0, args.max_segment_sim_seconds + 30.0
+                    ),
+                )
+                bridge.start()
+            if provided_host is not None:
+                host_client = provided_host
+            else:
+                host_env = os.environ.copy()
+                host_env["VLN_CARLA_EXEC_BRIDGE"] = bridge.endpoint
+                host_env["VLN_CARLA_EXEC_TOKEN"] = bridge.token
+                host_env[
+                    "VLN_CARLA_EXEC_TIMEOUT_MS"
+                ] = str(args.kernel_exec_timeout_ms)
+                host_client = HostClient([kernel_exe], env=host_env)
             result["meta"]["agent_kernel"]["bridge"] = {
                 "endpoint": bridge.endpoint,
                 "single_use_permits": True,
                 "token_recorded": False,
             }
+            if host_planner or getattr(args, "session_id", None):
+                host_session_id = getattr(args, "session_id", None) or run_id
+                session_response, session_output = _kernel_session_control(
+                    host_client,
+                    "session.create",
+                    {"session_id": host_session_id},
+                    f"{run_id}-session-create",
+                )
+                created_by_this_run = True
+                if (
+                    session_response.error is not None
+                    and session_response.error.get("code") == "session-exists"
+                ):
+                    created_by_this_run = False
+                    session_response, session_output = _kernel_session_control(
+                        host_client,
+                        "session.get",
+                        {"session_id": host_session_id},
+                        f"{run_id}-session-get",
+                    )
+                if (
+                    session_response.error is not None
+                    or not session_response.accepted
+                ):
+                    error = session_response.error or {}
+                    raise ValueError(
+                        "Kernel persistent session setup failed: "
+                        f"{error.get('code')}: {error.get('message')}"
+                    )
+                host_context_revision = (
+                    session_response.context_revision
+                    if isinstance(session_response.context_revision, int)
+                    else 0
+                )
+                result["meta"]["host_session"] = {
+                    "session_id": host_session_id,
+                    "created_by_this_run": created_by_this_run,
+                    "control_request_id": session_response.request_id,
+                    "session_state": session_response.session_state,
+                    "context_revision": host_context_revision,
+                    "turn": session_response.turn,
+                    "context": (
+                        None if session_output is None
+                        else session_output.get("context")
+                    ),
+                }
+                result["meta"]["host_planner"] = {
+                    "enabled": host_planner,
+                    "capability_id": "planner.plan",
+                    "planner_bridge_endpoint": (
+                        os.environ.get("VLN_TAICHU_PLANNER_BRIDGE")
+                        if host_planner
+                        else None
+                    ),
+                    "planner_token_recorded": False,
+                }
 
         expected_node_id = None
         previous_post_state = None
@@ -3091,6 +3817,13 @@ def run(args) -> tuple[int, dict]:
         recovery_attempts = 0
         pending_recovery = None
         previous_execution_finished_monotonic = None
+        last_verified_identity = None
+        visual_recovery_machine = VisualRecoveryMachine(
+            budget=RecoveryBudget(
+                max_total=args.max_visual_recovery_attempts,
+                max_per_type=args.max_visual_recovery_per_type,
+            )
+        )
         for round_index in range(1, args.rounds + 1):
             if time.monotonic() - task_started_monotonic > args.max_total_wall_seconds:
                 timed_out = True
@@ -3231,39 +3964,14 @@ def run(args) -> tuple[int, dict]:
                 target_note = target_note + "\n" + recovery_note
                 round_result["observation"]["recovery_note"] = recovery_note
             history_context = stm_context_before if round_index > 1 else ""
-            round_route_context = ""
-            round_route_facts = None
-            try:
-                candidate_facts = route_candidates(
-                    GRAPH,
-                    pose,
-                    route.goal_node_id,
-                    expected_node_id=expected_node_id,
-                    max_node_distance_m=MAX_NODE_DISTANCE_M,
-                    straight_tolerance_deg=STRAIGHT_TOLERANCE_DEG,
-                    turn_limit_deg=TURN_LIMIT_DEG,
-                    invert_turn_direction=INVERT_TURN_DIRECTION,
-                    excluded_nodes=other_parking_goals,
-                )
-                if candidate_facts.ok and candidate_facts.candidates:
-                    round_route_facts = build_route_facts_from_candidates(
-                        node_id=candidate_facts.matched_node_id,
-                        matched_node_distance_m=(
-                            candidate_facts.matched_node_distance_m
-                        ),
-                        pose=pose,
-                        candidates=candidate_facts.candidates,
-                        goal_node_id=route.goal_node_id,
-                    )
-                    round_route_context = format_route_facts(
-                        round_route_facts, target=target
-                    )
-                else:
-                    round_route_facts = candidate_facts.to_metadata()
-            except Exception as exc:  # prompt facts are advisory context only
-                round_route_facts = {
-                    "error": f"{type(exc).__name__}: {exc}"
-                }
+            round_route_facts, round_route_context = _route_facts_for_prompt(
+                pose=pose,
+                target=target,
+                expected_node_id=expected_node_id,
+                goal_node_id=route.goal_node_id,
+                args=args,
+                excluded_nodes=other_parking_goals,
+            )
             prompt = _prompt_for(
                 state,
                 target,
@@ -3314,15 +4022,44 @@ def run(args) -> tuple[int, dict]:
             )
 
             calls, restore_opener = observe01c.install_request_recorder()
+            planner_client = None
             try:
-                backend = ZDTaichuServerBackend(
-                    max_new_tokens=args.max_new_tokens,
-                    timeout=args.timeout,
-                    temperature=0.0,
-                    enable_thinking=args.enable_thinking,
-                    stop=None if args.enable_thinking else ["</think>"],
-                )
-                model = ServerImageModelClient(backend=backend)
+                if host_planner:
+                    planner_client = HostPlannerModelClient(
+                        host_client,
+                        session_id=host_session_id,
+                        context_revision=host_context_revision,
+                        request_id_prefix=(
+                            f"cap08b-plan-r{round_index}-{intent_id}"
+                        ),
+                        domain={
+                            "capability": "planner.plan",
+                            "parking": PARKING_CONTEXT,
+                            "round": round_index,
+                            "intent_id": intent_id,
+                            "target": target,
+                            "target_kind": args.target_kind,
+                            "pose": {
+                                "x": state["x"],
+                                "y": state["y"],
+                                "yaw": state["yaw"],
+                            },
+                            "frame_id": frame.frame_id,
+                            "image_sha256": image_sha,
+                            "route_goal_node_id": route.goal_node_id,
+                            "previous_round": round_index - 1,
+                        },
+                    )
+                    model = planner_client
+                else:
+                    backend = ZDTaichuServerBackend(
+                        max_new_tokens=args.max_new_tokens,
+                        timeout=args.timeout,
+                        temperature=0.0,
+                        enable_thinking=args.enable_thinking,
+                        stop=None if args.enable_thinking else ["</think>"],
+                    )
+                    model = ServerImageModelClient(backend=backend)
                 inference_started = utc_now()
                 inference_started_monotonic = time.monotonic()
                 outcome = generate_and_decide(
@@ -3337,11 +4074,140 @@ def run(args) -> tuple[int, dict]:
                 if restore_opener is not None:
                     restore_opener()
                     restore_opener = None
-            request = observe01c.request_evidence(calls, image_sha)
-            request["inference_started_utc"] = inference_started
-            request["inference_finished_utc"] = inference_finished
+            request = _model_request_evidence(
+                calls,
+                image_sha,
+                inference_started=inference_started,
+                inference_finished=inference_finished,
+                planner_client=planner_client,
+            )
+            if planner_client is not None and isinstance(
+                planner_client.context_revision_after, int
+            ):
+                # The retry must start from the revision the failed planning
+                # exchange actually wrote, not from the pre-call revision.
+                host_context_revision = planner_client.context_revision_after
+            visual_recovery_result = None
+            if (
+                outcome.status != SUCCESS
+                and not getattr(args, "no_visual_recovery", False)
+            ):
+                # A visual verification failure authorises only a bounded
+                # re-observation. No route arbitration or execution can happen
+                # on the failed outcome; the retry must pass the original chain.
+                visual_recovery_result = _attempt_visual_recovery(
+                    machine=visual_recovery_machine,
+                    session=session,
+                    ego=ego,
+                    out_dir=out_dir,
+                    args=args,
+                    host_client=host_client,
+                    host_planner=host_planner,
+                    host_session_id=host_session_id,
+                    host_context_revision=host_context_revision,
+                    task_memory=task_memory,
+                    round_index=round_index,
+                    target=target,
+                    route_goal_node_id=route.goal_node_id,
+                    expected_node_id=expected_node_id,
+                    excluded_nodes=other_parking_goals,
+                    initial_outcome=outcome,
+                    initial_frame=frame,
+                    initial_state=state,
+                    initial_image_path=image_path,
+                    initial_image_sha=image_sha,
+                    initial_image_size=image_size,
+                    initial_observation=observation,
+                    initial_request=request,
+                    initial_planner_client=planner_client,
+                    initial_intent_id=intent_id,
+                    last_verified_identity=last_verified_identity,
+                )
+                round_result["visual_recovery"] = visual_recovery_result["recovery"]
+                if visual_recovery_result["recovered"]:
+                    round_result["initial_observation"] = {
+                        **round_result["observation"]
+                    }
+                    outcome = visual_recovery_result["outcome"]
+                    frame = visual_recovery_result["frame"]
+                    state = visual_recovery_result["state"]
+                    image_path = visual_recovery_result["image_path"]
+                    image_sha = visual_recovery_result["image_sha"]
+                    image_size = visual_recovery_result["image_size"]
+                    observation = visual_recovery_result["observation"]
+                    intent_id = visual_recovery_result["intent_id"]
+                    pose = observation.pose
+                    planner_client = visual_recovery_result["planner_client"]
+                    request = visual_recovery_result["request"]
+                    inference_started = visual_recovery_result[
+                        "inference_started_utc"
+                    ]
+                    inference_finished = visual_recovery_result[
+                        "inference_finished_utc"
+                    ]
+                    inference_wall_s = visual_recovery_result["inference_wall_s"]
+                    round_result["observation"].update(
+                        {
+                            "image_path": image_path,
+                            "image_sha256": image_sha,
+                            "image_size_bytes": image_size,
+                            "frame": frame.to_metadata(),
+                            "state": state,
+                            "pose": {
+                                "x": pose.x,
+                                "y": pose.y,
+                                "heading": pose.heading,
+                            },
+                            "prompt": observation.prompt,
+                            "prompt_sha256": observe01c.sha256_bytes(
+                                observation.prompt.encode("utf-8")
+                            ),
+                            "intent_id": intent_id,
+                            "target": target,
+                            "recovered_from_frame_id": (
+                                round_result["initial_observation"]["frame"][
+                                    "frame_id"
+                                ]
+                            ),
+                            "recovery_attempt": visual_recovery_result[
+                                "recovery"
+                            ]["attempt_count"],
+                        }
+                    )
+                else:
+                    # Recovery did not produce a verified decision. Keep the
+                    # last real attempt's evidence, but never proceed to
+                    # arbitration or execution.
+                    outcome = visual_recovery_result["outcome"]
+                    request = visual_recovery_result["request"]
+                    planner_client = visual_recovery_result["planner_client"]
+                    frame = visual_recovery_result["frame"]
+                    state = visual_recovery_result["state"]
+                    image_path = visual_recovery_result["image_path"]
+                    image_sha = visual_recovery_result["image_sha"]
+                    image_size = visual_recovery_result["image_size"]
+                    observation = visual_recovery_result["observation"]
+                    intent_id = visual_recovery_result["intent_id"]
+                    pose = observation.pose
+                    inference_started = visual_recovery_result[
+                        "inference_started_utc"
+                    ]
+                    inference_finished = visual_recovery_result[
+                        "inference_finished_utc"
+                    ]
+                    inference_wall_s = visual_recovery_result["inference_wall_s"]
+            if planner_client is not None:
+                updated_revision = planner_client.context_revision_after
+                if isinstance(updated_revision, int):
+                    host_context_revision = updated_revision
+            if planner_client is not None and planner_client.last_exchange is not None:
+                round_result["planner"] = (
+                    planner_client.last_exchange.to_metadata()
+                )
             round_result["request"] = request
             round_result["decision"] = outcome.to_metadata()
+            if outcome.status == SUCCESS:
+                last_verified_identity = outcome.directive.identified_as
             generation_s = request.get("generation_time")
             round_result["timing"].update(
                 {
@@ -3371,6 +4237,12 @@ def run(args) -> tuple[int, dict]:
                         "message": outcome.error_message,
                     },
                 }
+                if visual_recovery_result is not None:
+                    result["stop"]["visual_recovery"] = (
+                        visual_recovery_result["recovery"]
+                    )
+                    if not visual_recovery_result["recovered"]:
+                        result["stop"]["visual_recovery_exhausted"] = True
                 result["stm"]["records"].append(
                     _record_stm_round(
                         task_memory=task_memory,
@@ -3468,18 +4340,48 @@ def run(args) -> tuple[int, dict]:
                         image_sha=image_sha,
                     )
                     redecision_intent_id = f"{intent_id}-redecision"
-                    # The longer route-facts prompt needs more generation
-                    # budget than the normal round; with the normal 1800-token
-                    # budget the real model returned an empty answer.
-                    redecision_model = ServerImageModelClient(
-                        backend=ZDTaichuServerBackend(
-                            max_new_tokens=max(4096, args.max_new_tokens),
-                            timeout=args.timeout,
-                            temperature=0.0,
-                            enable_thinking=args.enable_thinking,
-                            stop=None if args.enable_thinking else ["</think>"],
+                    redecision_planner_client = None
+                    if host_planner:
+                        redecision_planner_client = HostPlannerModelClient(
+                            host_client,
+                            session_id=host_session_id,
+                            context_revision=host_context_revision,
+                            request_id_prefix=(
+                                f"cap08b-replan-r{round_index}-"
+                                f"{redecision_intent_id}"
+                            ),
+                            domain={
+                                "capability": "planner.plan",
+                                "parking": PARKING_CONTEXT,
+                                "round": round_index,
+                                "intent_id": redecision_intent_id,
+                                "trigger": "no_compatible_route",
+                                "original_decision_intent_id": intent_id,
+                                "target": target,
+                                "target_kind": args.target_kind,
+                                "frame_id": observation.frame.frame_id,
+                                "image_sha256": image_sha,
+                                "pose": {
+                                    "x": pre_redecision_state["x"],
+                                    "y": pre_redecision_state["y"],
+                                    "yaw": pre_redecision_state["yaw"],
+                                },
+                            },
                         )
-                    )
+                        redecision_model = redecision_planner_client
+                    else:
+                        # The longer route-facts prompt needs more generation
+                        # budget than the normal round; with the normal 1800-token
+                        # budget the real model returned an empty answer.
+                        redecision_model = ServerImageModelClient(
+                            backend=ZDTaichuServerBackend(
+                                max_new_tokens=max(4096, args.max_new_tokens),
+                                timeout=args.timeout,
+                                temperature=0.0,
+                                enable_thinking=args.enable_thinking,
+                                stop=None if args.enable_thinking else ["</think>"],
+                            )
+                        )
                     calls, restore_opener = observe01c.install_request_recorder()
                     redecision_started = utc_now()
                     try:
@@ -3511,6 +4413,10 @@ def run(args) -> tuple[int, dict]:
                             restore_opener()
                             restore_opener = None
                     redecision_finished = utc_now()
+                    if redecision_planner_client is not None:
+                        host_context_revision = (
+                            redecision_planner_client.context_revision_after
+                        )
                     redecision_meta = redecision.to_metadata()
                     redecision_meta["request"] = observe01c.request_evidence(
                         calls, image_sha
@@ -3521,6 +4427,38 @@ def run(args) -> tuple[int, dict]:
                     redecision_meta["request"][
                         "inference_finished_utc"
                     ] = redecision_finished
+                    if redecision_planner_client is not None:
+                        redecision_meta["request"][
+                            "model_path"
+                        ] = "kernel_planner_bridge"
+                        exchange = redecision_planner_client.last_exchange
+                        if exchange is not None:
+                            redecision_meta["planner"] = exchange.to_metadata()
+                            server_response = exchange.output.get(
+                                "server_response"
+                            )
+                            if isinstance(server_response, dict):
+                                redecision_meta["request"][
+                                    "server_response_id"
+                                ] = server_response.get("server_response_id")
+                                redecision_meta["request"][
+                                    "response_model"
+                                ] = server_response.get("response_model")
+                                redecision_meta["request"][
+                                    "finish_reason"
+                                ] = server_response.get("finish_reason")
+                                redecision_meta["request"][
+                                    "usage"
+                                ] = server_response.get("usage")
+                            redecision_meta["request"][
+                                "planner_request_id"
+                            ] = exchange.planner_request_id
+                            redecision_meta["request"][
+                                "planner_artifact_id"
+                            ] = exchange.planning_artifact_id
+                            redecision_meta["request"][
+                                "planner_context_revision"
+                            ] = exchange.context_revision
                     redecision_meta["pre_redecision_state"] = pre_redecision_state
                     redecision_meta["observation_frame_id"] = observation.frame.frame_id
                     redecision_meta["observation_image_sha256"] = image_sha
@@ -3784,7 +4722,16 @@ def run(args) -> tuple[int, dict]:
                     execution_outcome.intent.intent_id,
                     host_client,
                     bridge,
+                    host_session_id=host_session_id,
+                    host_context_revision=host_context_revision,
                 )
+                kernel_response = (execution.get("kernel") or {}).get(
+                    "response"
+                ) or {}
+                if isinstance(
+                    kernel_response.get("context_revision"), int
+                ):
+                    host_context_revision = kernel_response["context_revision"]
             else:
                 execution = _drive_segment(
                     session,
@@ -4440,11 +5387,19 @@ def run(args) -> tuple[int, dict]:
         )
 
         rounds = result["rounds"]
+        # A real model round is one whose evidence carries the model server's
+        # own response identity. The direct HTTP path records http_status=200;
+        # the Kernel planner path records the bridge-forwarded server response
+        # and has no in-process HTTP status.
+        def _real_model_response(item: dict) -> bool:
+            request_evidence = item.get("request") or {}
+            return bool(
+                request_evidence.get("server_response_id")
+                and request_evidence.get("http_status") in (None, 200)
+            )
+
         real_model_rounds = sum(
-            1
-            for item in rounds
-            if item.get("request", {}).get("http_status") == 200
-            and item.get("request", {}).get("server_response_id")
+            1 for item in rounds if _real_model_response(item)
         )
         successful_segments = sum(
             1
@@ -5142,7 +6097,79 @@ def run(args) -> tuple[int, dict]:
     finally:
         if restore_opener is not None:
             restore_opener()
-        if host_client is not None:
+        if (
+            not keep_runtime
+            and host_client is not None
+            and host_session_id is not None
+        ):
+            host_session_meta = result["meta"].setdefault(
+                "host_session", {"session_id": host_session_id}
+            )
+            try:
+                get_response, get_output = _kernel_session_control(
+                    host_client,
+                    "session.get",
+                    {"session_id": host_session_id},
+                    f"{run_id}-session-final-get",
+                )
+                host_session_meta["final_get"] = {
+                    "accepted": get_response.accepted,
+                    "session_state": get_response.session_state,
+                    "context_revision": get_response.context_revision,
+                    "turn": get_response.turn,
+                    "error": (
+                        None
+                        if get_response.error is None
+                        else dict(get_response.error)
+                    ),
+                    "context": (
+                        None if get_output is None else get_output.get("context")
+                    ),
+                    "workflows": (
+                        None if get_output is None else get_output.get("workflows")
+                    ),
+                    "task_count": (
+                        None if get_output is None else get_output.get("task_count")
+                    ),
+                }
+                close_response, close_output = _kernel_session_control(
+                    host_client,
+                    "session.close",
+                    {"session_id": host_session_id},
+                    f"{run_id}-session-close",
+                )
+                host_session_meta["close"] = {
+                    "accepted": close_response.accepted,
+                    "session_state": close_response.session_state,
+                    "context_revision": close_response.context_revision,
+                    "error": (
+                        None
+                        if close_response.error is None
+                        else dict(close_response.error)
+                    ),
+                    "output": close_output,
+                }
+                after_close_response, after_close_output = _kernel_session_control(
+                    host_client,
+                    "session.get",
+                    {"session_id": host_session_id},
+                    f"{run_id}-session-get-after-close",
+                )
+                host_session_meta["get_after_close"] = {
+                    "accepted": after_close_response.accepted,
+                    "session_id": after_close_response.session_id,
+                    "error": (
+                        None
+                        if after_close_response.error is None
+                        else dict(after_close_response.error)
+                    ),
+                    "output": after_close_output,
+                }
+            except Exception as exc:
+                host_session_meta["finalize_error"] = (
+                    f"{type(exc).__name__}: {exc}"
+                )
+        if host_client is not None and not keep_runtime:
             try:
                 host_client.close()
             except Exception as exc:
@@ -5155,7 +6182,8 @@ def run(args) -> tuple[int, dict]:
         if bridge is not None:
             transactions = bridge.transactions
             result["kernel_bridge_transactions"] = transactions
-            bridge.close()
+            if not keep_runtime:
+                bridge.close()
             with open(out_dir / "kernel_bridge_transactions.jsonl", "w", encoding="utf-8") as handle:
                 for transaction in transactions:
                     handle.write(json.dumps(transaction, ensure_ascii=False) + "\n")
@@ -5167,7 +6195,7 @@ def run(args) -> tuple[int, dict]:
                     f"{type(exc).__name__}: {exc}"
                 )
             active_round_video = None
-        if session is not None:
+        if session is not None and not keep_runtime:
             cleanup = cleanup_session(session.world, session.actors, session.original)
             session.actors = []
             result["cleanup"] = {
@@ -5212,7 +6240,7 @@ def run(args) -> tuple[int, dict]:
     return exit_code, result
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, runtime: dict | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--scenario",
@@ -5493,6 +6521,25 @@ def main(argv: list[str] | None = None) -> int:
         help="Kernel host timeout for one CARLA capability execution (ms)",
     )
     parser.add_argument(
+        "--host-planner",
+        action="store_true",
+        help=(
+            "route every model call through the compiled Host's real Kernel "
+            "Planner path (capability planner.plan -> TaichuPlanningEngine -> "
+            "loopback planner bridge). Requires --kernel-host and the "
+            "VLN_TAICHU_PLANNER_BRIDGE / VLN_TAICHU_PLANNER_TOKEN environment "
+            "used by the Host"
+        ),
+    )
+    parser.add_argument(
+        "--session-id",
+        default=None,
+        help=(
+            "persistent Kernel Session id shared by planner.plan and "
+            "parking.move; defaults to the run id when --host-planner is used"
+        ),
+    )
+    parser.add_argument(
         "--safety-probe-distance",
         type=float,
         default=7.0,
@@ -5612,6 +6659,29 @@ def main(argv: list[str] | None = None) -> int:
         help="maximum cross-round recovery attempts after a safety stop",
     )
     parser.add_argument(
+        "--max-visual-recovery-attempts",
+        type=int,
+        default=3,
+        help=(
+            "maximum bounded re-observations after a visual verification "
+            "failure in one task"
+        ),
+    )
+    parser.add_argument(
+        "--max-visual-recovery-per-type",
+        type=int,
+        default=2,
+        help="maximum re-observations for one visual uncertainty type",
+    )
+    parser.add_argument(
+        "--no-visual-recovery",
+        action="store_true",
+        help=(
+            "disable bounded re-observation after a visual verification "
+            "failure; the failed decision is recorded without a new frame"
+        ),
+    )
+    parser.add_argument(
         "--no-route-redecision",
         action="store_true",
         help=(
@@ -5701,6 +6771,10 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--rounds must be at least 1")
     if args.max_recovery_attempts < 0:
         parser.error("--max-recovery-attempts must be non-negative")
+    if args.max_visual_recovery_attempts < 0:
+        parser.error("--max-visual-recovery-attempts must be non-negative")
+    if args.max_visual_recovery_per_type < 0:
+        parser.error("--max-visual-recovery-per-type must be non-negative")
     if args.obstacle_round < 0:
         parser.error("--obstacle-round must be non-negative")
     if args.mid_obstacle_round < 0:
@@ -5812,7 +6886,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
-    exit_code, _ = run(args)
+    exit_code, _ = run(args, runtime=runtime)
     return exit_code
 
 
