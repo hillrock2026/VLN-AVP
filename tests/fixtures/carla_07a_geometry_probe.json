@@ -1,0 +1,1037 @@
+{
+ "schema_version": "1",
+ "task": "M1-VLN-CARLA-07A-EXEC",
+ "generated_utc": "2026-10-26T15:40:41.486418+00:00",
+ "read_only": true,
+ "method": "CARLA world/map reads and world.cast_ray only; no actor spawn, no world settings change, no tick, no service start/stop",
+ "carla": {
+  "server_version": "0.10.0",
+  "map": "Carla/Maps/UndergroundCarPark",
+  "map_topology_edges": 0,
+  "map_landmarks": 0,
+  "spawn_points": 28,
+  "actors": {
+   "spectator": 1,
+   "traffic.traffic_light": 15
+  },
+  "settings": {
+   "synchronous_mode": false,
+   "fixed_delta_seconds": null,
+   "no_rendering_mode": false
+  },
+  "settings_error": null
+ },
+ "footprint": {
+  "half_length_m": 2.503,
+  "half_width_m": 0.94,
+  "length_m": 5.006,
+  "width_m": 1.88,
+  "front_margin_m": 0.3
+ },
+ "bay03": {
+  "slot_center": [
+   -9.5,
+   -21.1
+  ],
+  "floor_z": 5.8,
+  "scans": {
+   "bay03_center": {
+    "44": {
+     "distance_m": 2.436,
+     "x": -7.748,
+     "y": -19.408,
+     "z": 6.14
+    },
+    "132": {
+     "distance_m": 7.62,
+     "x": -14.599,
+     "y": -15.437,
+     "z": 6.14
+    },
+    "154": {
+     "distance_m": 5.443,
+     "x": -14.392,
+     "y": -18.714,
+     "z": 6.14
+    },
+    "176": {
+     "distance_m": 5.111,
+     "x": -14.599,
+     "y": -20.743,
+     "z": 6.14
+    },
+    "198": {
+     "distance_m": 5.361,
+     "x": -14.599,
+     "y": -22.757,
+     "z": 6.14
+    },
+    "220": {
+     "distance_m": 6.656,
+     "x": -14.599,
+     "y": -25.378,
+     "z": 6.14
+    },
+    "286": {
+     "distance_m": 6.208,
+     "x": -7.789,
+     "y": -27.068,
+     "z": 6.14
+    }
+   },
+   "goal": {
+    "154": {
+     "distance_m": 3.128,
+     "x": -6.811,
+     "y": -18.629,
+     "z": 6.14
+    },
+    "242": {
+     "distance_m": 7.466,
+     "x": -7.505,
+     "y": -26.592,
+     "z": 6.14
+    }
+   },
+   "bay_entry": {
+    "154": {
+     "distance_m": 2.491,
+     "x": -7.239,
+     "y": -19.408,
+     "z": 6.14
+    }
+   }
+  }
+ },
+ "floor_grid": {
+  "step_m": 0.5,
+  "region": {
+   "x_min": -14.5,
+   "x_max": -3.0,
+   "y_min": -24.0,
+   "y_max": -17.5
+  },
+  "raised": [
+   {
+    "x": -14.5,
+    "y": -19.0,
+    "floor_z": 7.0
+   },
+   {
+    "x": -7.5,
+    "y": -19.0,
+    "floor_z": 7.0
+   },
+   {
+    "x": -7.0,
+    "y": -19.0,
+    "floor_z": 7.0
+   }
+  ],
+  "holes": [],
+  "raised_count": 3,
+  "hole_count": 0
+ },
+ "obstacle_points": [
+  [
+   -14.6,
+   -24.0
+  ],
+  [
+   -14.6,
+   -23.5
+  ],
+  [
+   -14.6,
+   -23.0
+  ],
+  [
+   -14.6,
+   -22.5
+  ],
+  [
+   -14.6,
+   -22.0
+  ],
+  [
+   -14.6,
+   -21.5
+  ],
+  [
+   -14.6,
+   -21.0
+  ],
+  [
+   -14.6,
+   -20.5
+  ],
+  [
+   -14.6,
+   -20.0
+  ],
+  [
+   -14.6,
+   -19.5
+  ],
+  [
+   -14.6,
+   -18.5
+  ],
+  [
+   -14.6,
+   -18.0
+  ],
+  [
+   -14.6,
+   -17.5
+  ],
+  [
+   -14.5,
+   -26.69
+  ],
+  [
+   -14.5,
+   -19.31
+  ],
+  [
+   -14.5,
+   -19.0
+  ],
+  [
+   -14.5,
+   -18.69
+  ],
+  [
+   -14.39,
+   -19.0
+  ],
+  [
+   -7.79,
+   -19.0
+  ],
+  [
+   -7.5,
+   -26.59
+  ],
+  [
+   -7.5,
+   -19.41
+  ],
+  [
+   -7.5,
+   -19.0
+  ],
+  [
+   -7.5,
+   -18.57
+  ],
+  [
+   -7.0,
+   -26.59
+  ],
+  [
+   -7.0,
+   -19.41
+  ],
+  [
+   -7.0,
+   -19.0
+  ],
+  [
+   -7.0,
+   -18.57
+  ],
+  [
+   -6.81,
+   -19.0
+  ],
+  [
+   0.67,
+   -19.0
+  ]
+ ],
+ "obstacle_point_count": 29,
+ "run5_ground_probe_overlap": {
+  "s": 4.528,
+  "path_length_m": 11.698,
+  "poses": {
+   "last_saved_step": [
+    {
+     "offset_m": 3.0,
+     "s": 7.528,
+     "point": [
+      -5.388,
+      -20.629
+     ],
+     "ego_local": [
+      2.26,
+      -0.755
+     ],
+     "inside_ego_footprint": true
+    },
+    {
+     "offset_m": 4.0,
+     "s": 8.528,
+     "point": [
+      -6.342,
+      -20.92
+     ],
+     "ego_local": [
+      2.707,
+      -1.647
+     ],
+     "inside_ego_footprint": false
+    },
+    {
+     "offset_m": 5.0,
+     "s": 9.528,
+     "point": [
+      -7.332,
+      -21.062
+     ],
+     "ego_local": [
+      3.012,
+      -2.599
+     ],
+     "inside_ego_footprint": false
+    }
+   ],
+   "final_pose": [
+    {
+     "offset_m": 3.0,
+     "s": 7.528,
+     "point": [
+      -5.388,
+      -20.629
+     ],
+     "ego_local": [
+      2.046,
+      -0.681
+     ],
+     "inside_ego_footprint": true
+    },
+    {
+     "offset_m": 4.0,
+     "s": 8.528,
+     "point": [
+      -6.342,
+      -20.92
+     ],
+     "ego_local": [
+      2.51,
+      -1.565
+     ],
+     "inside_ego_footprint": false
+    },
+    {
+     "offset_m": 5.0,
+     "s": 9.528,
+     "point": [
+      -7.332,
+      -21.062
+     ],
+     "ego_local": [
+      2.834,
+      -2.511
+     ],
+     "inside_ego_footprint": false
+    }
+   ]
+  },
+  "hypothesis": "At both saved poses the s+3.0 m ground probe is inside the ego footprint (local x <= half-length, |local y| <= half-width); a downward ray there can hit the ego body. The saved last-step floor was still clear, so the exact stop-cycle floor reading is missing. The new stop diagnostics records inside_ego_footprint and floor_z at the stop step."
+ },
+ "candidate_paths": {
+  "current_full": {
+   "points": [
+    [
+     -3.9,
+     -14.0
+    ],
+    [
+     -4.0,
+     -18.0
+    ],
+    [
+     -4.0,
+     -20.0
+    ],
+    [
+     -5.0,
+     -20.5
+    ],
+    [
+     -6.2,
+     -20.9
+    ],
+    [
+     -7.6,
+     -21.1
+    ],
+    [
+     -8.5,
+     -21.1
+    ],
+    [
+     -9.5,
+     -21.1
+    ]
+   ],
+   "evaluation": {
+    "feasible": false,
+    "reasons": [
+     "required_steer_exceeds_limit: 63.356 deg > 45.0 deg"
+    ],
+    "required_clearance_m": 0.2,
+    "turn": {
+     "wheelbase_m": 3.0,
+     "max_steer_deg": 45.0,
+     "limit_radius_m": 3.0,
+     "min_radius_m": 1.505,
+     "max_required_steer_deg": 63.356,
+     "max_turn_deg": 63.435,
+     "kinematically_feasible": false,
+     "vertices": [
+      {
+       "index": 1,
+       "x": -4.0,
+       "y": -18.0,
+       "turn_deg": 1.432,
+       "radius_m": 120.054,
+       "required_steer_deg": 1.431
+      },
+      {
+       "index": 2,
+       "x": -4.0,
+       "y": -20.0,
+       "turn_deg": 63.435,
+       "radius_m": 1.505,
+       "required_steer_deg": 63.356
+      },
+      {
+       "index": 3,
+       "x": -5.0,
+       "y": -20.5,
+       "turn_deg": 8.13,
+       "radius_m": 8.404,
+       "required_steer_deg": 19.645
+      },
+      {
+       "index": 4,
+       "x": -6.2,
+       "y": -20.9,
+       "turn_deg": 10.305,
+       "radius_m": 7.458,
+       "required_steer_deg": 21.912
+      },
+      {
+       "index": 5,
+       "x": -7.6,
+       "y": -21.1,
+       "turn_deg": 8.13,
+       "radius_m": 8.162,
+       "required_steer_deg": 20.18
+      },
+      {
+       "index": 6,
+       "x": -8.5,
+       "y": -21.1,
+       "turn_deg": 0.0,
+       "radius_m": null,
+       "required_steer_deg": 0.0
+      }
+     ]
+    },
+    "clearance": {
+     "min_clearance_m": 0.648,
+     "worst_pose": {
+      "x": -6.9,
+      "y": -21.0,
+      "yaw_deg": -171.87,
+      "segment_index": 5,
+      "t": 0.5,
+      "obstacle": [
+       -7.0,
+       -19.41
+      ]
+     },
+     "sample_count": 57,
+     "obstacle_count": 29,
+     "sample_step_m": 0.25
+    },
+    "footprint": {
+     "half_length_m": 2.503,
+     "half_width_m": 0.94,
+     "length_m": 5.006,
+     "width_m": 1.88,
+     "front_margin_m": 0.3
+    }
+   }
+  },
+  "wide_forward_r3_5": {
+   "points": [
+    [
+     -3.9,
+     -14.0
+    ],
+    [
+     -4.0,
+     -17.6
+    ],
+    [
+     -4.013,
+     -17.905
+    ],
+    [
+     -4.053,
+     -18.208
+    ],
+    [
+     -4.119,
+     -18.506
+    ],
+    [
+     -4.211,
+     -18.797
+    ],
+    [
+     -4.328,
+     -19.079
+    ],
+    [
+     -4.469,
+     -19.35
+    ],
+    [
+     -4.633,
+     -19.608
+    ],
+    [
+     -4.819,
+     -19.85
+    ],
+    [
+     -5.025,
+     -20.075
+    ],
+    [
+     -5.25,
+     -20.281
+    ],
+    [
+     -5.492,
+     -20.467
+    ],
+    [
+     -5.75,
+     -20.631
+    ],
+    [
+     -6.021,
+     -20.772
+    ],
+    [
+     -6.303,
+     -20.889
+    ],
+    [
+     -6.594,
+     -20.981
+    ],
+    [
+     -6.892,
+     -21.047
+    ],
+    [
+     -7.195,
+     -21.087
+    ],
+    [
+     -7.5,
+     -21.1
+    ],
+    [
+     -9.5,
+     -21.1
+    ]
+   ],
+   "evaluation": {
+    "feasible": true,
+    "reasons": [],
+    "required_clearance_m": 0.2,
+    "turn": {
+     "wheelbase_m": 3.0,
+     "max_steer_deg": 45.0,
+     "limit_radius_m": 3.0,
+     "min_radius_m": 3.5,
+     "max_required_steer_deg": 40.601,
+     "max_turn_deg": 5.0,
+     "kinematically_feasible": true,
+     "vertices": [
+      {
+       "index": 1,
+       "x": -4.0,
+       "y": -17.6,
+       "turn_deg": 0.909,
+       "radius_m": 123.147,
+       "required_steer_deg": 1.396
+      },
+      {
+       "index": 2,
+       "x": -4.013,
+       "y": -17.905,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 3,
+       "x": -4.053,
+       "y": -18.208,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 4,
+       "x": -4.119,
+       "y": -18.506,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 5,
+       "x": -4.211,
+       "y": -18.797,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 6,
+       "x": -4.328,
+       "y": -19.079,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 7,
+       "x": -4.469,
+       "y": -19.35,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 8,
+       "x": -4.633,
+       "y": -19.608,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 9,
+       "x": -4.819,
+       "y": -19.85,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 10,
+       "x": -5.025,
+       "y": -20.075,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 11,
+       "x": -5.25,
+       "y": -20.281,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 12,
+       "x": -5.492,
+       "y": -20.467,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 13,
+       "x": -5.75,
+       "y": -20.631,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 14,
+       "x": -6.021,
+       "y": -20.772,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 15,
+       "x": -6.303,
+       "y": -20.889,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 16,
+       "x": -6.594,
+       "y": -20.981,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 17,
+       "x": -6.892,
+       "y": -21.047,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 18,
+       "x": -7.195,
+       "y": -21.087,
+       "turn_deg": 5.0,
+       "radius_m": 3.5,
+       "required_steer_deg": 40.601
+      },
+      {
+       "index": 19,
+       "x": -7.5,
+       "y": -21.1,
+       "turn_deg": 2.5,
+       "radius_m": 26.423,
+       "required_steer_deg": 6.478
+      }
+     ]
+    },
+    "clearance": {
+     "min_clearance_m": 0.68,
+     "worst_pose": {
+      "x": -6.449,
+      "y": -20.935,
+      "yaw_deg": -162.5,
+      "segment_index": 16,
+      "t": 0.5,
+      "obstacle": [
+       -7.0,
+       -19.41
+      ]
+     },
+     "sample_count": 79,
+     "obstacle_count": 29,
+     "sample_step_m": 0.25
+    },
+    "footprint": {
+     "half_length_m": 2.503,
+     "half_width_m": 0.94,
+     "length_m": 5.006,
+     "width_m": 1.88,
+     "front_margin_m": 0.3
+    }
+   }
+  },
+  "wide_forward_r4_0": {
+   "points": [
+    [
+     -3.9,
+     -14.0
+    ],
+    [
+     -4.0,
+     -17.1
+    ],
+    [
+     -4.015,
+     -17.449
+    ],
+    [
+     -4.061,
+     -17.795
+    ],
+    [
+     -4.136,
+     -18.135
+    ],
+    [
+     -4.241,
+     -18.468
+    ],
+    [
+     -4.375,
+     -18.79
+    ],
+    [
+     -4.536,
+     -19.1
+    ],
+    [
+     -4.723,
+     -19.394
+    ],
+    [
+     -4.936,
+     -19.671
+    ],
+    [
+     -5.172,
+     -19.928
+    ],
+    [
+     -5.429,
+     -20.164
+    ],
+    [
+     -5.706,
+     -20.377
+    ],
+    [
+     -6.0,
+     -20.564
+    ],
+    [
+     -6.31,
+     -20.725
+    ],
+    [
+     -6.632,
+     -20.859
+    ],
+    [
+     -6.965,
+     -20.964
+    ],
+    [
+     -7.305,
+     -21.039
+    ],
+    [
+     -7.651,
+     -21.085
+    ],
+    [
+     -8.0,
+     -21.1
+    ],
+    [
+     -9.5,
+     -21.1
+    ]
+   ],
+   "evaluation": {
+    "feasible": true,
+    "reasons": [],
+    "required_clearance_m": 0.2,
+    "turn": {
+     "wheelbase_m": 3.0,
+     "max_steer_deg": 45.0,
+     "limit_radius_m": 3.0,
+     "min_radius_m": 4.0,
+     "max_required_steer_deg": 36.87,
+     "max_turn_deg": 5.0,
+     "kinematically_feasible": true,
+     "vertices": [
+      {
+       "index": 1,
+       "x": -4.0,
+       "y": -17.1,
+       "turn_deg": 0.652,
+       "radius_m": 151.525,
+       "required_steer_deg": 1.134
+      },
+      {
+       "index": 2,
+       "x": -4.015,
+       "y": -17.449,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 3,
+       "x": -4.061,
+       "y": -17.795,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 4,
+       "x": -4.136,
+       "y": -18.135,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 5,
+       "x": -4.241,
+       "y": -18.468,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 6,
+       "x": -4.375,
+       "y": -18.79,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 7,
+       "x": -4.536,
+       "y": -19.1,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 8,
+       "x": -4.723,
+       "y": -19.394,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 9,
+       "x": -4.936,
+       "y": -19.671,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 10,
+       "x": -5.172,
+       "y": -19.928,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 11,
+       "x": -5.429,
+       "y": -20.164,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 12,
+       "x": -5.706,
+       "y": -20.377,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 13,
+       "x": -6.0,
+       "y": -20.564,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 14,
+       "x": -6.31,
+       "y": -20.725,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 15,
+       "x": -6.632,
+       "y": -20.859,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 16,
+       "x": -6.965,
+       "y": -20.964,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 17,
+       "x": -7.305,
+       "y": -21.039,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 18,
+       "x": -7.651,
+       "y": -21.085,
+       "turn_deg": 5.0,
+       "radius_m": 4.0,
+       "required_steer_deg": 36.87
+      },
+      {
+       "index": 19,
+       "x": -8.0,
+       "y": -21.1,
+       "turn_deg": 2.5,
+       "radius_m": 21.191,
+       "required_steer_deg": 8.058
+      }
+     ]
+    },
+    "clearance": {
+     "min_clearance_m": 0.539,
+     "worst_pose": {
+      "x": -6.31,
+      "y": -20.725,
+      "yaw_deg": -157.5,
+      "segment_index": 15,
+      "t": 0.0,
+      "obstacle": [
+       -7.0,
+       -19.41
+      ]
+     },
+     "sample_count": 75,
+     "obstacle_count": 29,
+     "sample_step_m": 0.25
+    },
+    "footprint": {
+     "half_length_m": 2.503,
+     "half_width_m": 0.94,
+     "length_m": 5.006,
+     "width_m": 1.88,
+     "front_margin_m": 0.3
+    }
+   }
+  }
+ },
+ "limits": [
+  "Painted bay width/depth are not exposed by CARLA collision meshes or the Python API.",
+  "Obstacle points are sampled collision-mesh hits, not a complete occupancy grid.",
+  "The candidate wide paths start before the hand-defined goal node; they are geometry candidates, not an approved route.",
+  "A feasible geometry check is not a parking success and does not certify safety."
+ ]
+}
