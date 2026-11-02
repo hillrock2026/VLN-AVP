@@ -76,6 +76,14 @@ RuntimePublicApiAdapter::RuntimePublicApiAdapter(
     ak::runtime::Runtime& runtime) noexcept
     : runtime_(runtime) {}
 
+RuntimePublicApiAdapter::RuntimePublicApiAdapter(
+    ak::runtime::Runtime& runtime,
+    ak::Session& persistent_session,
+    bool keep_session_active) noexcept
+    : runtime_(runtime),
+      persistent_session_(&persistent_session),
+      keep_session_active_(keep_session_active) {}
+
 // K0-BLOCKER-REMEDIATION-05 (INV-K0-FWA-RUNTIME-AUTHORITY): the only
 // production issuance of the Kernel execution authority. Every issued
 // handle is bound to a real RuntimePublicApiAdapter constructed from
@@ -85,6 +93,16 @@ RuntimeExecutionAuthorityHandle IssueRuntimeExecutionAuthority(
     return RuntimeExecutionAuthorityHandle(
         std::unique_ptr<ak::agent::RuntimeInteractionPort>(
             std::make_unique<RuntimePublicApiAdapter>(runtime)));
+}
+
+RuntimeExecutionAuthorityHandle IssueRuntimeExecutionAuthority(
+    ak::runtime::Runtime& runtime,
+    ak::Session& persistent_session,
+    bool keep_session_active) {
+    return RuntimeExecutionAuthorityHandle(
+        std::unique_ptr<ak::agent::RuntimeInteractionPort>(
+            std::make_unique<RuntimePublicApiAdapter>(
+                runtime, persistent_session, keep_session_active)));
 }
 
 void RuntimePublicApiAdapter::RegisterCapability(
@@ -153,14 +171,20 @@ ak::agent::RuntimeSubmissionResult RuntimePublicApiAdapter::Submit(
     descriptor.request_id = request_id;
     descriptor.payload = request.payload;
 
-    auto session = ak::SessionBuilder()
-        .WithID(ak::SessionID(
-            static_cast<ak::SessionID::ValueType>(session_counter_ + 1)))
-        .WithName("runtime-integration-invocation")
-        .WithMaxWorkflows(1)
-        .Build();
-    session->Initialize();
-    session->Activate();
+    std::unique_ptr<ak::Session> owned_session;
+    ak::Session* session = persistent_session_;
+    if (session == nullptr) {
+        owned_session = ak::SessionBuilder()
+            .WithID(ak::SessionID(
+                static_cast<ak::SessionID::ValueType>(session_counter_ + 1)))
+            .WithName("runtime-integration-invocation")
+            .WithMaxWorkflows(1)
+            .Build();
+        session = owned_session.get();
+        session->Initialize();
+        session->Activate();
+        ++session_counter_;
+    }
 
     const ak::WorkflowID workflow_id = session->CreateWorkflow();
     ak::Workflow* workflow = session->FindWorkflow(workflow_id);
@@ -170,12 +194,18 @@ ak::agent::RuntimeSubmissionResult RuntimePublicApiAdapter::Submit(
     }
     workflow->AddTask(descriptor);
     workflow->Validate();
-    ++session_counter_;
 
     // ------------------------------------------------------------
     // 5. Submit through the Runtime Public API (TASK 2 §13.2.6).
+    //    A persistent Session runs only this request's new Workflow and
+    //    remains Ready for the next request; the original one-shot path is
+    //    unchanged.
     // ------------------------------------------------------------
-    const ak::runtime::RuntimeResult result = runtime_.Run(*session);
+    const ak::runtime::RuntimeResult result =
+        persistent_session_ != nullptr
+            ? runtime_.RunWorkflow(*session, workflow_id,
+                                   keep_session_active_)
+            : runtime_.Run(*session);
 
     // ------------------------------------------------------------
     // 6. Terminal submission outcome (TASK 2 §10 / F-002 CLOSED):

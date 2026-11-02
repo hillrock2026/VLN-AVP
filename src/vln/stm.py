@@ -16,7 +16,9 @@ translated into "arrived" or "parked".
 The model-input path consumes :meth:`NavigationTaskMemory.render_context` and
 appends it as a separate, clearly labelled history section. The real previous
 ``Response`` remains the existing feedback section and is never replaced by
-this summary.
+this summary. The CARLA runner uses the read-only
+:meth:`NavigationTaskMemory.render_compact_context`, which keeps the same
+ledger but omits stale-fact bookkeeping.
 """
 
 from __future__ import annotations
@@ -37,6 +39,7 @@ __all__ = [
     "MemoryFact",
     "UnresolvedQuestion",
     "NavigationRoundRecord",
+    "TargetBindingState",
     "NavigationTaskMemory",
     "classify_response",
     "MAX_TASK_ID_CHARS",
@@ -168,6 +171,43 @@ class NavigationRoundRecord:
     stop_reason: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class TargetBindingState:
+    """One round's parking-target binding, as carried across the task.
+
+    ``bay_id``/``slot_node_id`` are scene identities, not model output. Once a
+    bay is bound, later rounds keep the same identity; a status change
+    (temporarily not visible, invalidated, refused) is recorded instead of
+    silently rebinding to another bay.
+    """
+
+    status: str
+    bay_id: Optional[str]
+    slot_node_id: Optional[str]
+    instruction: str
+    round_index: int
+    selected_label: Optional[str] = None
+    reason: str = ""
+
+    @property
+    def executable(self) -> bool:
+        return self.status == "bound" and bool(self.bay_id) and bool(
+            self.slot_node_id
+        )
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "bay_id": self.bay_id,
+            "slot_node_id": self.slot_node_id,
+            "instruction": self.instruction,
+            "round": self.round_index,
+            "selected_label": self.selected_label,
+            "reason": self.reason,
+            "executable": self.executable,
+        }
+
+
 class NavigationTaskMemory:
     """A bounded, in-memory short-term memory for one navigation task.
 
@@ -208,6 +248,7 @@ class NavigationTaskMemory:
         self._records: list[NavigationRoundRecord] = []
         self._facts: list[MemoryFact] = []
         self._unresolved: list[UnresolvedQuestion] = []
+        self._bindings: list[TargetBindingState] = []
 
     # -- read-only views -------------------------------------------------
 
@@ -222,6 +263,19 @@ class NavigationTaskMemory:
     @property
     def unresolved(self) -> tuple[UnresolvedQuestion, ...]:
         return tuple(self._unresolved)
+
+    @property
+    def target_bindings(self) -> tuple[TargetBindingState, ...]:
+        return tuple(self._bindings)
+
+    @property
+    def target_binding(self) -> Optional[TargetBindingState]:
+        return self._bindings[-1] if self._bindings else None
+
+    @property
+    def bound_target(self) -> Optional[TargetBindingState]:
+        binding = self.target_binding
+        return binding if binding is not None and binding.executable else None
 
     @property
     def next_round_index(self) -> int:
@@ -353,6 +407,154 @@ class NavigationTaskMemory:
         )
         return record
 
+    def record_carla_round(
+        self,
+        *,
+        round_index: int,
+        intent_id: Optional[str],
+        action: Optional[str],
+        target: Optional[Mapping[str, float]],
+        visual_decision: Optional[VisualNavigationDecision],
+        directive: Optional[NavigationDirective],
+        outcome: str,
+        task_target: str,
+        execution: Optional[Mapping[str, Any]] = None,
+        error: Optional[str] = None,
+    ) -> NavigationRoundRecord:
+        """Record one CARLA visual-navigation round.
+
+        The CARLA runner does not build the NAV-10 ``VisualParkingExecution``
+        object, so this entry point records the same decision/outcome facts from
+        the fields it actually has. ``execution`` is the runner's real segment
+        result (selected route, moved distance, stop reason, Kernel status and
+        post-state); it is a summary fact, never a claim of physical arrival.
+        """
+
+        if type(round_index) is not int or round_index < 0:
+            raise ValueError("round_index must be a non-negative int")
+        if outcome not in RoundOutcome.ALL:
+            raise ValueError(f"unknown round outcome: {outcome!r}")
+        if not isinstance(task_target, str) or task_target.strip() == "":
+            raise ValueError("task_target must be a non-blank str")
+        if visual_decision is not None and not isinstance(
+            visual_decision, VisualNavigationDecision
+        ):
+            raise TypeError("visual_decision must be a VisualNavigationDecision or None")
+        if directive is not None and not isinstance(directive, NavigationDirective):
+            raise TypeError("directive must be a NavigationDirective or None")
+        if target is not None and not isinstance(target, Mapping):
+            raise TypeError("target must be a mapping or None")
+        if execution is not None and not isinstance(execution, Mapping):
+            raise TypeError("execution must be a mapping or None")
+
+        record = NavigationRoundRecord(
+            task_id=self.task_id,
+            round_index=round_index,
+            intent_id=intent_id,
+            action=action,
+            target=None if target is None else dict(target),
+            visual_decision=visual_decision,
+            directive=directive,
+            request_id=None,
+            response=None,
+            outcome=outcome,
+            error=error,
+        )
+        self._append_record(record)
+
+        self.remember_fact(
+            "task_target",
+            task_target,
+            status=FactStatus.OBSERVED,
+            source_round=round_index,
+            evidence="caller navigation instruction",
+        )
+        if visual_decision is not None:
+            self.observe_target(
+                visual_decision.identified_as,
+                round_index=round_index,
+                evidence=visual_decision.evidence,
+            )
+            self.remember_fact(
+                "last_decision",
+                json.dumps(
+                    {
+                        "visible": visual_decision.visible,
+                        "position": visual_decision.position,
+                        "direction": visual_decision.direction,
+                        "evidence": visual_decision.evidence,
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                ),
+                status=FactStatus.OBSERVED,
+                source_round=round_index,
+                evidence=visual_decision.evidence,
+            )
+        if directive is not None:
+            self.remember_fact(
+                "navigation_direction",
+                directive.direction,
+                status=FactStatus.OBSERVED,
+                source_round=round_index,
+                evidence=directive.evidence,
+            )
+            self.set_subgoal(
+                f"{directive.direction} toward {directive.identified_as}",
+                round_index=round_index,
+                evidence=directive.evidence,
+            )
+        if action is not None and intent_id is not None:
+            self.remember_fact(
+                "last_action",
+                f"{action} intent_id={intent_id}",
+                status=(
+                    FactStatus.CONFIRMED
+                    if outcome == RoundOutcome.SOFTWARE_SUCCEEDED
+                    else FactStatus.OBSERVED
+                ),
+                source_round=round_index,
+                evidence=outcome,
+            )
+        self.remember_fact(
+            "last_action_outcome",
+            outcome,
+            status=FactStatus.CONFIRMED,
+            source_round=round_index,
+            evidence=error or outcome,
+        )
+        if execution is not None:
+            self.remember_fact(
+                "last_execution",
+                json.dumps(dict(execution), sort_keys=True, separators=(",", ":")),
+                status=(
+                    FactStatus.CONFIRMED
+                    if outcome == RoundOutcome.SOFTWARE_SUCCEEDED
+                    else FactStatus.OBSERVED
+                ),
+                source_round=round_index,
+                evidence=error or outcome,
+            )
+            post_state = execution.get("post_state")
+            if isinstance(post_state, Mapping):
+                self.remember_fact(
+                    "last_post_state",
+                    json.dumps(
+                        dict(post_state), sort_keys=True, separators=(",", ":")
+                    ),
+                    status=FactStatus.OBSERVED,
+                    source_round=round_index,
+                    evidence="real CARLA state after execution",
+                )
+        if outcome != RoundOutcome.SOFTWARE_SUCCEEDED:
+            self.add_unresolved(
+                f"round {round_index}: action outcome {outcome}",
+                round_index=round_index,
+                evidence=error or outcome,
+            )
+        return record
+
     def mark_stopped(self, reason: str) -> None:
         """Attach the loop's terminal stop reason to the task and last round."""
 
@@ -455,6 +657,85 @@ class NavigationTaskMemory:
             evidence=evidence,
         )
 
+    def record_target_binding(self, binding: object) -> TargetBindingState:
+        """Carry one target-binding result across rounds.
+
+        ``binding`` is duck-typed (a
+        :class:`vln.nav.target_binding.TargetBinding` or an equivalent object)
+        so this module stays independent of the binding layer. The scene
+        identity (``bay_id``/``slot_node_id``) is recorded as an observed fact;
+        a later round that changes only the temporary candidate letter keeps the
+        same identity.
+        """
+
+        status = getattr(binding, "status", None)
+        instruction = getattr(binding, "instruction", None)
+        round_index = getattr(binding, "round_index", None)
+        bay_id = getattr(binding, "bay_id", None)
+        slot_node_id = getattr(binding, "slot_node_id", None)
+        selected_label = getattr(binding, "selected_label", None)
+        reason = getattr(binding, "reason", "") or ""
+        if type(status) is not str or status.strip() == "":
+            raise ValueError("binding status must be a non-blank str")
+        if type(instruction) is not str or instruction.strip() == "":
+            raise ValueError("binding instruction must be a non-blank str")
+        if type(round_index) is not int or round_index < 0:
+            raise ValueError("binding round_index must be a non-negative int")
+        if status == "bound" and (
+            type(bay_id) is not str
+            or bay_id == ""
+            or type(slot_node_id) is not str
+            or slot_node_id == ""
+        ):
+            raise ValueError("a bound binding requires bay_id and slot_node_id")
+        if bay_id is not None and (type(bay_id) is not str or bay_id == ""):
+            raise ValueError("binding bay_id must be a non-blank str or None")
+        if slot_node_id is not None and (
+            type(slot_node_id) is not str or slot_node_id == ""
+        ):
+            raise ValueError(
+                "binding slot_node_id must be a non-blank str or None"
+            )
+        if selected_label is not None and type(selected_label) is not str:
+            raise ValueError("binding selected_label must be a str or None")
+        if type(reason) is not str:
+            raise ValueError("binding reason must be a str")
+
+        state = TargetBindingState(
+            status=status,
+            bay_id=bay_id,
+            slot_node_id=slot_node_id,
+            instruction=instruction,
+            round_index=round_index,
+            selected_label=selected_label,
+            reason=reason,
+        )
+        self._bindings.append(state)
+        if len(self._bindings) > self.max_entries:
+            del self._bindings[: len(self._bindings) - self.max_entries]
+        self.remember_fact(
+            "target_binding_status",
+            status,
+            status=FactStatus.OBSERVED,
+            source_round=round_index,
+            evidence=reason,
+        )
+        self.remember_fact(
+            "target_binding_bay",
+            bay_id or "none",
+            status=FactStatus.OBSERVED,
+            source_round=round_index,
+            evidence=reason or status,
+        )
+        self.remember_fact(
+            "target_binding_instruction",
+            instruction,
+            status=FactStatus.OBSERVED,
+            source_round=round_index,
+            evidence="caller parking instruction",
+        )
+        return state
+
     def add_unresolved(
         self, question: str, *, round_index: int, evidence: str = ""
     ) -> None:
@@ -498,6 +779,7 @@ class NavigationTaskMemory:
             "physical_arrival": "unknown",
             "round": self.next_round_index,
             "stop_reason": self.stop_reason,
+            "target_binding": self._binding_payload(),
             "facts": [self._fact_payload(fact) for fact in self._facts[-self.max_facts :]],
             "rounds": [
                 self._record_payload(record)
@@ -514,20 +796,100 @@ class NavigationTaskMemory:
             return text
 
         payload["truncated"] = True
-        while payload["rounds"] and len(text) > limit:
-            payload["rounds"].pop(0)
-            text = self._dump(payload)
+        # Round records are the cross-round continuity evidence. Drop the
+        # oldest summary facts first so the newest round stays visible in the
+        # bounded context.
         while payload["facts"] and len(text) > limit:
             payload["facts"].pop(0)
             text = self._dump(payload)
         while payload["unresolved"] and len(text) > limit:
             payload["unresolved"].pop(0)
             text = self._dump(payload)
+        while payload["rounds"] and len(text) > limit:
+            payload["rounds"].pop(0)
+            text = self._dump(payload)
         if len(text) > limit:
             text = self._dump({"truncated": True})
         return text
 
+    def render_compact_context(self, *, max_chars: int = 2400) -> str:
+        """Render a compact history block for a real model prompt.
+
+        Unlike :meth:`render_context` this omits stale facts and the
+        ``previous_value``/evidence bookkeeping, keeps at most three recent
+        round records and renders facts as a ``key -> value`` map. It still
+        exposes the same task identity, outcomes and real execution summaries,
+        and it never claims physical arrival.
+        """
+
+        if type(max_chars) is not int or max_chars < 128:
+            raise ValueError("max_chars must be an integer >= 128")
+        facts: dict[str, str] = {}
+        for fact in self._facts:
+            if fact.status != FactStatus.STALE:
+                facts[fact.key] = fact.value
+        payload: dict[str, Any] = {
+            "task_id": self.task_id,
+            "source": "history",
+            "note": (
+                "History only; not current image evidence. physical_arrival is "
+                "unknown; a software success is not a physical arrival."
+            ),
+            "physical_arrival": "unknown",
+            "round": self.next_round_index,
+            "stop_reason": self.stop_reason,
+            "target_binding": self._binding_payload(),
+            "facts": dict(facts),
+            "rounds": [
+                self._record_payload(record)
+                for record in self._records[-min(3, self.max_entries):]
+            ],
+            "unresolved": [
+                item.question for item in self._unresolved[-3:]
+            ],
+            "truncated": False,
+        }
+        text = self._dump(payload)
+        while len(payload["rounds"]) > 1 and len(text) > max_chars:
+            payload["rounds"].pop(0)
+            text = self._dump(payload)
+        low_priority = (
+            "target_binding_status",
+            "target_binding_bay",
+            "target_binding_instruction",
+            "target_identity",
+            "navigation_direction",
+            "subgoal",
+            "last_decision",
+            "last_action",
+            "last_post_state",
+        )
+        for key in low_priority:
+            if len(text) <= max_chars:
+                break
+            payload["facts"].pop(key, None)
+            text = self._dump(payload)
+        while payload["unresolved"] and len(text) > max_chars:
+            payload["unresolved"].pop(0)
+            text = self._dump(payload)
+        if len(text) > max_chars:
+            payload["truncated"] = True
+            payload["rounds"] = []
+            payload["facts"] = {
+                key: value
+                for key, value in payload["facts"].items()
+                if key in ("task_target", "last_action_outcome", "last_execution")
+            }
+            text = self._dump(payload)
+        if len(text) > max_chars:
+            text = self._dump({"truncated": True})
+        return text
+
     # -- internals -------------------------------------------------------
+
+    def _binding_payload(self) -> Optional[dict[str, Any]]:
+        binding = self.target_binding
+        return None if binding is None else binding.to_payload()
 
     def _append_record(self, record: NavigationRoundRecord) -> None:
         if self._records and record.round_index <= self._records[-1].round_index:

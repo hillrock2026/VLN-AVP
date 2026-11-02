@@ -1,0 +1,11 @@
+{
+  "task_id": "cap07b-06",
+  "stage": "PARKING_COMPLETED",
+  "parking_completed": true,
+  "decision": "PARKING_COMPLETED",
+  "vehicle_actor_id": 804,
+  "bay_id": "bay03",
+  "slot_node_id": "park_slot",
+  "gate_decision_id": "914b446ae1ae4ba25969207ecc480da33742aeff3c6187ff8a7f86088557fb63",
+  "verifier_result_sha256": "dad0d9cc0b3d6091eb5ba7e45f70480eee463ae872b1ac33c927c648e47d3fb3"
+}

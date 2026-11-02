@@ -75,6 +75,19 @@ TEST(PlannerSession, OpenExchangeAccountingIsDeterministic) {
     EXPECT_EQ(planner.GetLifecycleState(), PlannerLifecycleState::kReady);
 }
 
+TEST(PlannerSession, PrimarySessionIdAccessorMatchesActivation) {
+    ImmediatePlanningEngine engine;
+    PlannerTestFixture fx(engine);
+    Planner& planner = fx.planner();
+    EXPECT_FALSE(planner.GetPrimarySessionId().IsValid());
+
+    fx.ActivatePlanner();
+    EXPECT_EQ(planner.GetPrimarySessionId(), fx.PrimarySessionId());
+
+    ASSERT_TRUE(planner.LifecycleContract().Lifecycle().Terminate().IsAccepted());
+    EXPECT_FALSE(planner.GetPrimarySessionId().IsValid());
+}
+
 TEST(PlannerSession, WrongSessionIdIsRefused) {
     ImmediatePlanningEngine engine;
     PlannerTestFixture fx(engine);

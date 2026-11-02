@@ -12,8 +12,14 @@ Two steps, kept apart on purpose:
   judgement may drive a navigation intent: the target must be reported visible,
   the identity the model says it read must be the identity that was requested,
   the ``Evidence`` value must not be an explicit "cannot determine" answer, and
-  the relative position and the discrete direction must both be approved tokens
-  that agree with each other. It returns a :class:`NavigationDirective`.
+  the relative position and the discrete direction must both be approved
+  tokens. The two fields are independent observations: relative position is
+  where the target appears in the image; next direction is the proposed route
+  action. They may legitimately differ (for example, a target ahead but a right
+  turn at the current decision point). Route feasibility is checked by
+  :func:`vln.carla.route_arbitration.arbitrate_route` against real reachable
+  candidates, not by equating these two fields. It returns a
+  :class:`NavigationDirective`.
 
 Why the identity check exists. 08A measured that naming a target in the
 instruction can make the model state an identity it cannot read: with a target
@@ -68,7 +74,6 @@ __all__ = [
     "FIELD_DIRECTION",
     "FIELD_EVIDENCE",
     "DECISION_FIELDS",
-    "POSITION_TO_DIRECTION",
     "VisualNavigationDecision",
     "NavigationDirective",
     "parse_visual_decision",
@@ -99,13 +104,9 @@ DECISION_FIELDS = (
     FIELD_EVIDENCE,
 )
 
-#: The approved position -> discrete-direction correspondence. A block whose two
-#: answers disagree is refused rather than resolved by picking one of them.
-POSITION_TO_DIRECTION = {
-    "LEFT": "LEFT",
-    "RIGHT": "RIGHT",
-    "AHEAD": "STRAIGHT",
-}
+#: The approved position and direction vocabularies are intentionally separate.
+#: A target's visual position does not prescribe the next route action; route
+#: arbitration checks the action against the real reachable candidates.
 
 #: A field label at the start of a line, optionally behind markdown decoration.
 _FIELD_LINE_TEMPLATE = r"^[ \t>*`#\-\u2022]*{label}[ \t>*`]*[:：][ \t]*(.*?)[ \t]*$"
@@ -285,8 +286,9 @@ def verify_visual_decision(
       -> :class:`EvidenceInsufficientError`;
     * ``Relative position`` or ``Next direction`` is off-vocabulary or
       ``无法确定`` -> :class:`VisualDecisionValidationError`;
-    * the position and the direction disagree
-      -> :class:`VisualDecisionValidationError`.
+    * the position and the direction differ -> **not** a refusal: they are
+      independent axes. The route action is checked against real reachable
+      candidates by route arbitration before any execution.
     """
 
     if not isinstance(decision, VisualNavigationDecision):
@@ -341,12 +343,11 @@ def verify_visual_decision(
             f"Next direction must be one of {list(approved_directions)}, "
             f"got {decision.direction!r}"
         )
-    if POSITION_TO_DIRECTION[decision.position] != decision.direction:
-        raise VisualDecisionValidationError(
-            f"the answer contradicts itself: Relative position "
-            f"{decision.position!r} does not correspond to Next direction "
-            f"{decision.direction!r}"
-        )
+    # CAP-02C: relative position is a visual observation of where the target
+    # appears; next direction is the proposed route action. They are separate
+    # axes and may legitimately differ (target ahead, right turn at the current
+    # decision point). The action is validated against the real reachable
+    # candidates by route arbitration, never by rewriting or equating fields.
 
     return NavigationDirective(
         direction=decision.direction,

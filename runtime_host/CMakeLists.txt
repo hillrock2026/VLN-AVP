@@ -61,12 +61,18 @@ add_subdirectory("${AGENT_KERNEL_SOURCE_DIR}"
                  "${CMAKE_CURRENT_BINARY_DIR}/_agent_kernel"
                  EXCLUDE_FROM_ALL)
 
-add_executable(kernel_host kernel_host.cpp)
+add_executable(kernel_host
+    kernel_host.cpp
+    autoware_adapter.cpp
+    taichu_planning_engine.cpp
+)
 target_include_directories(kernel_host PRIVATE "${NLOHMANN_JSON_INCLUDE_DIR}")
 target_link_libraries(kernel_host PRIVATE
     agent_kernel_runtime_integration
     agent_kernel_runtime
     agent_kernel
+    agent_kernel_context
+    agent_kernel_planner
 )
 target_compile_features(kernel_host PRIVATE cxx_std_20)
 

@@ -1,0 +1,307 @@
+{
+  "initial_measurement": {
+    "x": -9.4864,
+    "y": -21.2488,
+    "yaw_rad": -3.081275,
+    "yaw_deg": -176.5441,
+    "speed_mps": 0.0,
+    "stopped": true,
+    "heading_error_deg": 3.4559,
+    "lateral_error_m": 0.1088,
+    "longitudinal_error_m": -0.0136,
+    "distance_to_center_m": 0.1096,
+    "footprint_corners": [
+      [
+        -11.9282,
+        -22.338
+      ],
+      [
+        -12.0415,
+        -20.4614
+      ],
+      [
+        -7.0446,
+        -20.1596
+      ],
+      [
+        -6.9313,
+        -22.0362
+      ]
+    ],
+    "footprint_inside_bay": true,
+    "boundary_clearance_m": 0.052,
+    "obstacle_clearance_m": null,
+    "stability": {
+      "samples": 5,
+      "max_speed_mps": 0.0,
+      "position_drift_m": 0.0,
+      "stable": true
+    },
+    "collision_count": 0
+  },
+  "final_measurement": {
+    "x": -9.4817,
+    "y": -21.1965,
+    "yaw_rad": -3.103949,
+    "yaw_deg": -177.8432,
+    "speed_mps": 0.0,
+    "stopped": true,
+    "heading_error_deg": 2.1568,
+    "lateral_error_m": 0.0565,
+    "longitudinal_error_m": -0.0183,
+    "distance_to_center_m": 0.0594,
+    "footprint_corners": [
+      [
+        -11.9476,
+        -22.23
+      ],
+      [
+        -12.0183,
+        -20.3514
+      ],
+      [
+        -7.0158,
+        -20.163
+      ],
+      [
+        -6.9451,
+        -22.0416
+      ]
+    ],
+    "footprint_inside_bay": true,
+    "boundary_clearance_m": 0.16,
+    "obstacle_clearance_m": null,
+    "stability": {
+      "samples": 5,
+      "max_speed_mps": 0.0,
+      "position_drift_m": 0.0,
+      "stable": true
+    },
+    "collision_count": 0
+  },
+  "path_plan": {
+    "ok": true,
+    "reasons": [],
+    "min_boundary_clearance_m": 0.052,
+    "min_obstacle_clearance_m": null,
+    "simulated_pose_count": 808,
+    "predicted_final": {
+      "x": -9.4836,
+      "y": -21.2283,
+      "yaw_rad": -3.104376,
+      "yaw_deg": -177.8676,
+      "speed_mps": 0.0,
+      "stopped": true,
+      "heading_error_deg": 2.1324,
+      "lateral_error_m": 0.0883,
+      "longitudinal_error_m": -0.0164,
+      "distance_to_center_m": 0.0898,
+      "footprint_corners": [
+        [
+          -11.9499,
+          -22.2608
+        ],
+        [
+          -12.0199,
+          -20.3821
+        ],
+        [
+          -7.0173,
+          -20.1958
+        ],
+        [
+          -6.9474,
+          -22.0745
+        ]
+      ],
+      "footprint_inside_bay": true,
+      "boundary_clearance_m": 0.129,
+      "obstacle_clearance_m": null,
+      "stability": {
+        "samples": 3,
+        "max_speed_mps": 0.0,
+        "position_drift_m": 0.0,
+        "stable": true
+      },
+      "collision_count": 0
+    }
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "phase": "TERMINAL_REVERSE_ALIGN",
+      "pre_measurement": {
+        "x": -9.4864,
+        "y": -21.2488,
+        "yaw_rad": -3.081275,
+        "yaw_deg": -176.5441,
+        "speed_mps": 0.0,
+        "stopped": true,
+        "heading_error_deg": 3.4559,
+        "lateral_error_m": 0.1088,
+        "longitudinal_error_m": -0.0136,
+        "distance_to_center_m": 0.1096,
+        "footprint_corners": [
+          [
+            -11.9282,
+            -22.338
+          ],
+          [
+            -12.0415,
+            -20.4614
+          ],
+          [
+            -7.0446,
+            -20.1596
+          ],
+          [
+            -6.9313,
+            -22.0362
+          ]
+        ],
+        "footprint_inside_bay": true,
+        "boundary_clearance_m": 0.052,
+        "obstacle_clearance_m": null,
+        "stability": {
+          "samples": 5,
+          "max_speed_mps": 0.0,
+          "position_drift_m": 0.0,
+          "stable": true
+        },
+        "collision_count": 0
+      },
+      "post_measurement": {
+        "x": -7.6891,
+        "y": -21.1277,
+        "yaw_rad": -3.096003,
+        "yaw_deg": -177.3879,
+        "speed_mps": 0.0,
+        "stopped": true,
+        "heading_error_deg": 2.6121,
+        "lateral_error_m": -0.0123,
+        "longitudinal_error_m": -1.8109,
+        "distance_to_center_m": 1.8109,
+        "footprint_corners": [
+          [
+            -10.1467,
+            -22.1808
+          ],
+          [
+            -10.2323,
+            -20.3027
+          ],
+          [
+            -5.2315,
+            -20.0746
+          ],
+          [
+            -5.1459,
+            -21.9527
+          ]
+        ],
+        "footprint_inside_bay": true,
+        "boundary_clearance_m": 0.185,
+        "obstacle_clearance_m": null,
+        "stability": {
+          "samples": 5,
+          "max_speed_mps": 0.0,
+          "position_drift_m": 0.0,
+          "stable": true
+        },
+        "collision_count": 0
+      },
+      "improvement": {
+        "ok": true,
+        "reasons": []
+      }
+    },
+    {
+      "round": 2,
+      "phase": "TERMINAL_FORWARD_RETURN",
+      "pre_measurement": {
+        "x": -7.6891,
+        "y": -21.1277,
+        "yaw_rad": -3.096003,
+        "yaw_deg": -177.3879,
+        "speed_mps": 0.0,
+        "stopped": true,
+        "heading_error_deg": 2.6121,
+        "lateral_error_m": -0.0123,
+        "longitudinal_error_m": -1.8109,
+        "distance_to_center_m": 1.8109,
+        "footprint_corners": [
+          [
+            -10.1467,
+            -22.1808
+          ],
+          [
+            -10.2323,
+            -20.3027
+          ],
+          [
+            -5.2315,
+            -20.0746
+          ],
+          [
+            -5.1459,
+            -21.9527
+          ]
+        ],
+        "footprint_inside_bay": true,
+        "boundary_clearance_m": 0.185,
+        "obstacle_clearance_m": null,
+        "stability": {
+          "samples": 5,
+          "max_speed_mps": 0.0,
+          "position_drift_m": 0.0,
+          "stable": true
+        },
+        "collision_count": 0
+      },
+      "post_measurement": {
+        "x": -9.4817,
+        "y": -21.1965,
+        "yaw_rad": -3.103949,
+        "yaw_deg": -177.8432,
+        "speed_mps": 0.0,
+        "stopped": true,
+        "heading_error_deg": 2.1568,
+        "lateral_error_m": 0.0565,
+        "longitudinal_error_m": -0.0183,
+        "distance_to_center_m": 0.0594,
+        "footprint_corners": [
+          [
+            -11.9476,
+            -22.23
+          ],
+          [
+            -12.0183,
+            -20.3514
+          ],
+          [
+            -7.0158,
+            -20.163
+          ],
+          [
+            -6.9451,
+            -22.0416
+          ]
+        ],
+        "footprint_inside_bay": true,
+        "boundary_clearance_m": 0.16,
+        "obstacle_clearance_m": null,
+        "stability": {
+          "samples": 5,
+          "max_speed_mps": 0.0,
+          "position_drift_m": 0.0,
+          "stable": true
+        },
+        "collision_count": 0
+      },
+      "improvement": {
+        "ok": true,
+        "reasons": []
+      }
+    }
+  ]
+}

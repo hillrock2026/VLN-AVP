@@ -17,7 +17,6 @@ import pytest
 from vln.intent.agent_intent import AgentIntentError
 from vln.nav import (
     DECISION_FIELDS,
-    POSITION_TO_DIRECTION,
     EvidenceInsufficientError,
     NavigationDirective,
     VisualDecisionParseError,
@@ -249,7 +248,8 @@ def test_identity_matching_is_whole_token(
 
 
 @pytest.mark.parametrize(
-    "position,direction", sorted(POSITION_TO_DIRECTION.items())
+    "position,direction",
+    [("LEFT", "LEFT"), ("RIGHT", "RIGHT"), ("AHEAD", "STRAIGHT")],
 )
 def test_each_approved_direction_pair_is_accepted(position: str, direction: str) -> None:
     decision = parse_visual_decision(
@@ -261,19 +261,9 @@ def test_each_approved_direction_pair_is_accepted(position: str, direction: str)
     assert directive.position == position
 
 
-#: For each approval state, a direction that cannot correspond to it.
-_MISMATCHED_DIRECTION = {
-    "LEFT": "RIGHT",
-    "RIGHT": "LEFT",
-    "AHEAD": "LEFT",
-    UNKNOWN_ANSWER: "LEFT",
-}
-
-
-@pytest.mark.parametrize("position", POSITION_ANSWERS)
-def test_an_unknown_position_or_a_mismatched_direction_is_refused(position: str) -> None:
+def test_an_unknown_position_is_refused() -> None:
     decision = parse_visual_decision(
-        _block(position=position, direction=_MISMATCHED_DIRECTION[position])
+        _block(position=UNKNOWN_ANSWER, direction="STRAIGHT")
     )
     with pytest.raises(VisualDecisionValidationError):
         verify_visual_decision(decision, expected_identity="D50")
@@ -303,11 +293,21 @@ def test_an_off_vocabulary_or_unknown_direction_is_refused(direction: str) -> No
         verify_visual_decision(parse_visual_decision(raw), expected_identity="D50")
 
 
-@pytest.mark.parametrize("position,direction", [("LEFT", "RIGHT"), ("RIGHT", "LEFT"), ("AHEAD", "LEFT")])
-def test_a_self_contradictory_answer_is_refused(position: str, direction: str) -> None:
-    decision = parse_visual_decision(_block(position=position, direction=direction))
-    with pytest.raises(VisualDecisionValidationError, match="contradicts itself"):
-        verify_visual_decision(decision, expected_identity="D50")
+@pytest.mark.parametrize(
+    "position,direction",
+    [("AHEAD", "RIGHT"), ("RIGHT", "STRAIGHT"), ("LEFT", "RIGHT"), ("RIGHT", "LEFT")],
+)
+def test_visual_position_and_route_action_may_differ(
+    position: str, direction: str
+) -> None:
+    """CAP-02C: the two fields are independent observations/actions."""
+
+    directive = verify_visual_decision(
+        parse_visual_decision(_block(position=position, direction=direction)),
+        expected_identity="D50",
+    )
+    assert directive.position == position
+    assert directive.direction == direction
 
 
 def test_an_invisible_target_is_refused_with_its_own_error() -> None:

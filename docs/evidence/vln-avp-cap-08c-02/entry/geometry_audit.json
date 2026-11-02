@@ -1,0 +1,370 @@
+{
+  "route_id": "bay03-entry-7570949dfd31",
+  "route_hash": "7570949dfd3112c378ddf95b6872b2d5eb4cd5d3adbd029f932048c4b7b84694",
+  "bay_polygon": [
+    [
+      -4.0,
+      -19.89
+    ],
+    [
+      -14.4,
+      -19.89
+    ],
+    [
+      -14.4,
+      -22.39
+    ],
+    [
+      -4.0,
+      -22.39
+    ]
+  ],
+  "footprint": {
+    "half_length_m": 2.503,
+    "half_width_m": 0.94,
+    "length_m": 5.006,
+    "width_m": 1.88,
+    "front_margin_m": 0.3
+  },
+  "route_audit": {
+    "ok": true,
+    "reasons": [],
+    "samples": 163,
+    "route_length_m": 8.0764,
+    "turn": {
+      "wheelbase_m": 3.0,
+      "max_steer_deg": 45.0,
+      "limit_radius_m": 3.0,
+      "min_radius_m": 3.56,
+      "max_required_steer_deg": 40.121,
+      "max_turn_deg": 2.5,
+      "kinematically_feasible": true,
+      "vertices": [
+        {
+          "index": 1,
+          "x": -4.0,
+          "y": -17.74,
+          "turn_deg": 0.84,
+          "radius_m": 23.883,
+          "required_steer_deg": 7.16
+        },
+        {
+          "index": 2,
+          "x": -4.003,
+          "y": -17.895,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 3,
+          "x": -4.014,
+          "y": -18.05,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 4,
+          "x": -4.03,
+          "y": -18.205,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 5,
+          "x": -4.054,
+          "y": -18.358,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 6,
+          "x": -4.084,
+          "y": -18.511,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 7,
+          "x": -4.121,
+          "y": -18.661,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 8,
+          "x": -4.165,
+          "y": -18.811,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 9,
+          "x": -4.215,
+          "y": -18.958,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 10,
+          "x": -4.271,
+          "y": -19.102,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 11,
+          "x": -4.334,
+          "y": -19.245,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 12,
+          "x": -4.402,
+          "y": -19.384,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 13,
+          "x": -4.477,
+          "y": -19.52,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 14,
+          "x": -4.558,
+          "y": -19.653,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 15,
+          "x": -4.644,
+          "y": -19.782,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 16,
+          "x": -4.736,
+          "y": -19.907,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 17,
+          "x": -4.833,
+          "y": -20.028,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 18,
+          "x": -4.935,
+          "y": -20.145,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 19,
+          "x": -5.043,
+          "y": -20.257,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 20,
+          "x": -5.155,
+          "y": -20.365,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 21,
+          "x": -5.272,
+          "y": -20.467,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 22,
+          "x": -5.393,
+          "y": -20.564,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 23,
+          "x": -5.518,
+          "y": -20.656,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 24,
+          "x": -5.647,
+          "y": -20.742,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 25,
+          "x": -5.78,
+          "y": -20.823,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 26,
+          "x": -5.916,
+          "y": -20.898,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 27,
+          "x": -6.055,
+          "y": -20.966,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 28,
+          "x": -6.198,
+          "y": -21.029,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 29,
+          "x": -6.342,
+          "y": -21.085,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 30,
+          "x": -6.489,
+          "y": -21.135,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 31,
+          "x": -6.639,
+          "y": -21.179,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 32,
+          "x": -6.789,
+          "y": -21.216,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 33,
+          "x": -6.942,
+          "y": -21.246,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 34,
+          "x": -7.095,
+          "y": -21.27,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 35,
+          "x": -7.25,
+          "y": -21.286,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 36,
+          "x": -7.405,
+          "y": -21.297,
+          "turn_deg": 2.5,
+          "radius_m": 3.56,
+          "required_steer_deg": 40.121
+        },
+        {
+          "index": 37,
+          "x": -7.56,
+          "y": -21.3,
+          "turn_deg": 1.25,
+          "radius_m": 48.024,
+          "required_steer_deg": 3.575
+        }
+      ]
+    },
+    "min_obstacle_clearance_m": 0.858,
+    "terminal_pose": {
+      "x": -9.5,
+      "y": -21.3,
+      "yaw_deg": 180.0
+    },
+    "terminal_footprint_inside_bay": true,
+    "terminal_boundary_clearance_m": 0.15,
+    "corridor_violations": 0,
+    "corridor_half_width_m": 3.0,
+    "obstacle_guard_m": 0.2
+  },
+  "trajectory_audit": {
+    "ok": true,
+    "reasons": [],
+    "pose_count": 662,
+    "max_route_deviation_m": 0.2583,
+    "min_footprint_to_bay_clearance_m": 0.0,
+    "min_obstacle_clearance_m": 0.475,
+    "corridor_violations": 0,
+    "final_footprint_inside_bay": false
+  },
+  "terminal_trajectory_audit": {
+    "ok": true,
+    "reasons": [],
+    "pose_count": 806,
+    "min_obstacle_clearance_m": 0.725,
+    "min_footprint_to_bay_clearance_m": 0.0
+  }
+}

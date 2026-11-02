@@ -67,6 +67,10 @@ public:
     // -- Identity --
     [[nodiscard]] PlannerIdentity GetIdentity() const noexcept;
 
+    // Primary PlannerSession id created at Activate. Invalid before Activate
+    // and after Terminated (the session is retired then).
+    [[nodiscard]] PlannerSessionId GetPrimarySessionId() const noexcept;
+
     // -- State representation (read-only, always callable) --
     [[nodiscard]] PlannerLifecycleState GetLifecycleState() const noexcept;
     [[nodiscard]] PlannerOperationalState GetOperationalState() const noexcept;

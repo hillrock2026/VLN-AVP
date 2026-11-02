@@ -1,0 +1,91 @@
+{
+  "state": {
+    "x": -9.4864,
+    "y": -21.2488,
+    "z": 5.7859,
+    "yaw_deg": -176.5441,
+    "yaw_rad": -3.081275,
+    "pitch": 0.1581,
+    "roll": 0.0027,
+    "speed": 0.0,
+    "frame": 11616169,
+    "sim_time": 3220.4116
+  },
+  "stability_samples": [
+    {
+      "x": -9.4864,
+      "y": -21.2488,
+      "speed": 0.0
+    },
+    {
+      "x": -9.4864,
+      "y": -21.2488,
+      "speed": 0.0
+    },
+    {
+      "x": -9.4864,
+      "y": -21.2488,
+      "speed": 0.0
+    },
+    {
+      "x": -9.4864,
+      "y": -21.2488,
+      "speed": 0.0
+    },
+    {
+      "x": -9.4864,
+      "y": -21.2488,
+      "speed": 0.0
+    }
+  ],
+  "measurement": {
+    "x": -9.4864,
+    "y": -21.2488,
+    "yaw_rad": -3.081275,
+    "yaw_deg": -176.5441,
+    "speed_mps": 0.0,
+    "stopped": true,
+    "heading_error_deg": 3.4559,
+    "lateral_error_m": 0.1088,
+    "longitudinal_error_m": -0.0136,
+    "distance_to_center_m": 0.1096,
+    "footprint_corners": [
+      [
+        -11.9282,
+        -22.338
+      ],
+      [
+        -12.0415,
+        -20.4614
+      ],
+      [
+        -7.0446,
+        -20.1596
+      ],
+      [
+        -6.9313,
+        -22.0362
+      ]
+    ],
+    "footprint_inside_bay": true,
+    "boundary_clearance_m": 0.052,
+    "obstacle_clearance_m": null,
+    "stability": {
+      "samples": 5,
+      "max_speed_mps": 0.0,
+      "position_drift_m": 0.0,
+      "stable": true
+    },
+    "collision_count": 0
+  },
+  "entry_historical": {
+    "task_id": "live-entry",
+    "decision": "ENTRY_COMPLETED",
+    "final_pose": {
+      "x": -9.4864,
+      "y": -21.2488,
+      "yaw_rad": -3.081275
+    },
+    "source": "live in-process Entry result in the current session"
+  }
+}

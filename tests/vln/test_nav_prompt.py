@@ -448,6 +448,51 @@ def test_require_evidence_must_be_a_bool() -> None:
             )
 
 
+# ----------------------------------------------------------------------
+# CAP-02B: separate target position from the next executable direction
+# ----------------------------------------------------------------------
+
+
+def test_decision_field_clarification_is_opt_in() -> None:
+    default = build_nav_prompt(
+        Variant.TARGET_DIRECTION,
+        target="D50",
+        require_identity=True,
+        require_evidence=True,
+    )
+    clarified = build_nav_prompt(
+        Variant.TARGET_DIRECTION,
+        target="D50",
+        require_identity=True,
+        require_evidence=True,
+        clarify_decision_fields=True,
+    )
+    assert "补充规则（字段语义）" not in default
+    assert "补充规则（字段语义）" in clarified
+    assert "Relative position 只描述目标在画面中的位置" in clarified
+    assert "Next direction 描述当前决策点下一段实际执行的路线动作" in clarified
+    assert "二者允许不同" in clarified
+    assert "Relative position: AHEAD、Next direction: RIGHT" in clarified
+    assert clarified.index("补充规则（字段语义）") < clarified.index("硬性规则：")
+
+
+def test_decision_field_clarification_does_not_apply_to_other_variants() -> None:
+    for variant in _DETEMPLATED_VARIANTS:
+        assert build_nav_prompt(
+            variant, target="A12", clarify_decision_fields=True
+        ) == build_nav_prompt(variant, target="A12")
+
+
+def test_decision_field_clarification_must_be_a_bool() -> None:
+    for bad in ("yes", 1, None):
+        with pytest.raises(ValueError):
+            build_nav_prompt(
+                Variant.TARGET_DIRECTION,
+                target="D50",
+                clarify_decision_fields=bad,
+            )
+
+
 def test_require_evidence_does_not_leak_into_the_other_variants() -> None:
     for variant in (Variant.DETEMPLATED, Variant.ABSTENTION, Variant.STRICT):
         assert build_nav_prompt(variant, target="A12", require_evidence=True) == (

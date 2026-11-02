@@ -27,7 +27,14 @@ from vln.ipc.envelope import Request
 __all__ = ["build_request"]
 
 
-def build_request(intent: AgentIntent, *, request_id: str) -> Request:
+def build_request(
+    intent: AgentIntent,
+    *,
+    request_id: str,
+    session_id: str | None = None,
+    expected_context_revision: int | None = None,
+    domain: dict | None = None,
+) -> Request:
     """Map a validated :class:`AgentIntent` to an IPC v1 :class:`Request`.
 
     Raises :class:`TypeError` when ``intent`` is not an :class:`AgentIntent`
@@ -35,6 +42,9 @@ def build_request(intent: AgentIntent, *, request_id: str) -> Request:
     never silently coerces, repairs or accepts an arbitrary object. The intent
     itself is already validated by its own authoritative contract, so no field
     is re-checked, defaulted or rewritten here.
+
+    The optional persistent-session fields are transport metadata only; they do
+    not alter the AgentIntent payload.
     """
 
     if not isinstance(intent, AgentIntent):
@@ -47,4 +57,7 @@ def build_request(intent: AgentIntent, *, request_id: str) -> Request:
         request_id=request_id,
         capability_id=intent.action,
         payload=intent.to_payload(),
+        session_id=session_id,
+        expected_context_revision=expected_context_revision,
+        domain=domain,
     )

@@ -1,0 +1,152 @@
+{
+  "state": {
+    "x": -9.4817,
+    "y": -21.1965,
+    "z": 5.7859,
+    "yaw_deg": -177.8432,
+    "yaw_rad": -3.103949,
+    "pitch": 0.1782,
+    "roll": 0.0032,
+    "speed": 0.0,
+    "frame": 11617190,
+    "sim_time": 3271.4616
+  },
+  "samples": [
+    {
+      "x": -9.4817,
+      "y": -21.1965,
+      "speed": 0.0
+    },
+    {
+      "x": -9.4817,
+      "y": -21.1965,
+      "speed": 0.0
+    },
+    {
+      "x": -9.4817,
+      "y": -21.1965,
+      "speed": 0.0
+    },
+    {
+      "x": -9.4817,
+      "y": -21.1965,
+      "speed": 0.0
+    },
+    {
+      "x": -9.4817,
+      "y": -21.1965,
+      "speed": 0.0
+    }
+  ],
+  "measurement": {
+    "x": -9.4817,
+    "y": -21.1965,
+    "yaw_rad": -3.103949,
+    "yaw_deg": -177.8432,
+    "speed_mps": 0.0,
+    "stopped": true,
+    "heading_error_deg": 2.1568,
+    "lateral_error_m": 0.0565,
+    "longitudinal_error_m": -0.0183,
+    "distance_to_center_m": 0.0594,
+    "footprint_corners": [
+      [
+        -11.9476,
+        -22.23
+      ],
+      [
+        -12.0183,
+        -20.3514
+      ],
+      [
+        -7.0158,
+        -20.163
+      ],
+      [
+        -6.9451,
+        -22.0416
+      ]
+    ],
+    "footprint_inside_bay": true,
+    "boundary_clearance_m": 0.16,
+    "obstacle_clearance_m": null,
+    "stability": {
+      "samples": 5,
+      "max_speed_mps": 0.0,
+      "position_drift_m": 0.0,
+      "stable": true
+    },
+    "collision_count": 0
+  },
+  "verification": {
+    "schema": "vln.parking.refinement_result.v1",
+    "skill": "vln.parking.refinement",
+    "stage": "PARKING_POSE_READY",
+    "task_id": "cap07b-05",
+    "bay_id": "bay03",
+    "slot_node_id": "park_slot",
+    "entry_completion_id": "d27cb2091cd12e808108d35aee9d874b6f6cc521cd210207a781cb343ef848d2",
+    "plan_hash": "c99c30bc948462c7978247d955d85fe1bb20562eee146b4d19d760e5f0b018f7",
+    "identity_verified": true,
+    "authorization_verified": true,
+    "ready": true,
+    "parking_completed": false,
+    "checks": {
+      "identity": true,
+      "authorization": true,
+      "footprint_inside_bay": true,
+      "boundary_clearance": true,
+      "obstacle_clearance": true,
+      "heading": true,
+      "position": true,
+      "stopped": true,
+      "stop_stable": true,
+      "no_collision": true
+    },
+    "reasons": [],
+    "measurement": {
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.8432,
+      "speed_mps": 0.0,
+      "stopped": true,
+      "heading_error_deg": 2.1568,
+      "lateral_error_m": 0.0565,
+      "longitudinal_error_m": -0.0183,
+      "distance_to_center_m": 0.0594,
+      "footprint_corners": [
+        [
+          -11.9476,
+          -22.23
+        ],
+        [
+          -12.0183,
+          -20.3514
+        ],
+        [
+          -7.0158,
+          -20.163
+        ],
+        [
+          -6.9451,
+          -22.0416
+        ]
+      ],
+      "footprint_inside_bay": true,
+      "boundary_clearance_m": 0.16,
+      "obstacle_clearance_m": null,
+      "stability": {
+        "samples": 5,
+        "max_speed_mps": 0.0,
+        "position_drift_m": 0.0,
+        "stable": true
+      },
+      "collision_count": 0
+    },
+    "stage_history": [
+      "REFINEMENT_PENDING",
+      "PARKING_POSE_READY"
+    ]
+  }
+}

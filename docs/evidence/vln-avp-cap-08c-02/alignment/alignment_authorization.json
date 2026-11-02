@@ -1,0 +1,119 @@
+{
+  "schema": "vln.parking.alignment_authorization.v1",
+  "skill": "vln.parking.alignment",
+  "authorization_id": "190e2889a1cd864c0a405901d4f16bddce7fb7f7d5fe63fede767221972fbec5",
+  "task_id": "cap07b-03",
+  "target_id": "bay03",
+  "bay_id": "bay03",
+  "slot_node_id": "park_slot",
+  "approach_node_id": "park_entry",
+  "entry_authorization_id": "43a15fc975b7b513b05b01dcc0969ab9d592194c629ed7db5e399819488469f6",
+  "entry_observation_image_hashes": [
+    "409d797500037c02ee9306311cd6bffe9153ce59db00d07f7f84860809b79a3e",
+    "56748f3d3f015d447250b06d87825ee05d63428049178547ae52005f8ce98f3f"
+  ],
+  "decision": "ALIGNMENT_AUTHORIZED",
+  "reason": "the bound target was verified by two independent close-range observations; this permission allows bounded low-speed alignment only",
+  "created_at": "2026-10-31T07:29:02.558986+00:00",
+  "expires_at": "2026-10-31T07:59:02.558986+00:00",
+  "consumed_at": "2026-10-31T07:29:02.559148+00:00",
+  "revoked": false,
+  "stage_scope": "ALIGNMENT",
+  "permits_alignment": true,
+  "permits_entry": false,
+  "permits_parking_arc": false,
+  "executes_motion": false,
+  "single_use": true,
+  "budget": {
+    "max_rounds": 4,
+    "max_phase_distance_m": 1.3,
+    "max_total_distance_m": 6.0,
+    "max_phase_sim_seconds": 25.0,
+    "reverse_speed_cap_mps": 0.15,
+    "forward_speed_cap_mps": 0.12
+  },
+  "target_definition": {
+    "schema": "vln.parking.alignment_target.v1",
+    "skill": "vln.parking.alignment",
+    "task_id": "cap07b-03",
+    "target_id": "bay03",
+    "bay_id": "bay03",
+    "slot_node_id": "park_slot",
+    "approach_node_id": "park_entry",
+    "entry_node_id": "park_entry",
+    "entry_xy": [
+      -4.0,
+      -17.74
+    ],
+    "reference_xy": [
+      -4.0,
+      -17.189999999999998
+    ],
+    "reference_heading_rad": -1.5707963267948966,
+    "reference_heading_deg": -90.0,
+    "standoff_m": 0.55,
+    "bay_polygon": [
+      [
+        -4.0,
+        -19.89
+      ],
+      [
+        -14.4,
+        -19.89
+      ],
+      [
+        -14.4,
+        -22.39
+      ],
+      [
+        -4.0,
+        -22.39
+      ]
+    ],
+    "bay_center": [
+      -9.5,
+      -21.14
+    ],
+    "footprint": {
+      "half_length_m": 2.503,
+      "half_width_m": 0.94,
+      "length_m": 5.006,
+      "width_m": 1.88,
+      "front_margin_m": 0.3
+    },
+    "region": {
+      "x_min": -4.25,
+      "x_max": -2.75,
+      "y_min": -18.0,
+      "y_max": -15.6
+    },
+    "tolerances": {
+      "lateral_m": 0.15,
+      "heading_deg": 2.0,
+      "longitudinal_m": 0.08,
+      "boundary_clearance_m": 0.1,
+      "obstacle_clearance_m": 0.2,
+      "stop_speed_mps": 0.05,
+      "stable_drift_m": 0.02,
+      "stable_samples": 3
+    },
+    "obstacle_point_count": 29,
+    "source": "vln.carla.parking_verdict bay03 polygon + PARKING_FOOTPRINT + parking graph park_entry forward-right arc",
+    "geometry_status": "valid",
+    "coordinate_contract": {
+      "frame": "CARLA world (x, y) metres",
+      "vehicle_reference": "CARLA actor transform (bounding-box centre)",
+      "bay_reference": "closed painted polygon",
+      "heading": "radians, numeric x-y plane, CCW positive",
+      "lateral_sign": "positive = vehicle left of the staging line",
+      "longitudinal_sign": "positive = vehicle north of the staging point"
+    },
+    "geometry_checks": {
+      "polygon_point_count": 4,
+      "polygon_area_m2": 26.0,
+      "reference_inside_region": true,
+      "reference_inside_bay": false,
+      "standoff_m": 0.55
+    }
+  }
+}

@@ -31,6 +31,11 @@ PlannerIdentity Planner::GetIdentity() const noexcept {
     return identity_;
 }
 
+PlannerSessionId Planner::GetPrimarySessionId() const noexcept {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return (session_ != nullptr) ? session_->GetId() : PlannerSessionId{};
+}
+
 PlannerLifecycleState Planner::GetLifecycleState() const noexcept {
     std::lock_guard<std::mutex> lock(mutex_);
     return lifecycle_;

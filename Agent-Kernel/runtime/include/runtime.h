@@ -96,6 +96,15 @@ public:
 
     // ---- Execution ----
     RuntimeResult Run(ak::Session& session);
+    // Persistent-session execution: execute exactly one Workflow that was
+    // already created in the supplied Session. When keep_session_active is
+    // true the Session is left in the executable Ready state so a subsequent
+    // request can add another Workflow/Task to the same Session. The Runtime
+    // itself remains one-shot per request; the Session is the persistent
+    // Kernel object.
+    RuntimeResult RunWorkflow(ak::Session& session,
+                              const ak::WorkflowID& workflow_id,
+                              bool keep_session_active);
     void Stop();
     [[nodiscard]] bool IsRunning() const noexcept;
 
@@ -129,6 +138,12 @@ public:
     [[nodiscard]] EventBus& GetEventBus() noexcept;
 
 private:
+    // Shared execution implementation. `only_workflow` limits execution to one
+    // existing Workflow; nullptr means execute every Workflow in the Session.
+    RuntimeResult RunImpl(ak::Session& session,
+                          const ak::WorkflowID* only_workflow,
+                          bool shutdown_session);
+
     // Publish a Runtime lifecycle event through the canonical EventBus
     // (AK0034 — Runtime Event Bus is the exclusive event propagation mechanism).
     void PublishRuntimeEvent(ak::RuntimeEventType type,

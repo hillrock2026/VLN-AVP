@@ -1,0 +1,251 @@
+{
+  "schema": "vln.parking.entry_route.v1",
+  "skill": "vln.parking.entry",
+  "task_id": "cap07b-04",
+  "bay_id": "bay03",
+  "slot_node_id": "park_slot",
+  "approach_node_id": "park_entry",
+  "route_id": "bay03-entry-7570949dfd31",
+  "route_hash": "7570949dfd3112c378ddf95b6872b2d5eb4cd5d3adbd029f932048c4b7b84694",
+  "start_pose": {
+    "x": -3.9961,
+    "y": -17.1952,
+    "yaw_deg": -89.5553
+  },
+  "length_m": 8.0764,
+  "target_pose": {
+    "x": -9.5,
+    "y": -21.3,
+    "heading_deg": 180.0
+  },
+  "segments": [
+    {
+      "index": 1,
+      "phase": "ARC_ENTRY",
+      "start_s": 0.0,
+      "end_s": 4.2,
+      "length_m": 4.2,
+      "target_pose": {
+        "x": -5.718,
+        "y": -20.7854,
+        "heading_deg": -148.75
+      }
+    },
+    {
+      "index": 2,
+      "phase": "FINAL_STRAIGHT",
+      "start_s": 4.2,
+      "end_s": 8.0764,
+      "length_m": 3.8764,
+      "target_pose": {
+        "x": -9.5,
+        "y": -21.3,
+        "heading_deg": 180.0
+      }
+    }
+  ],
+  "points": [
+    [
+      -3.9961,
+      -17.1952
+    ],
+    [
+      -4.0,
+      -17.74
+    ],
+    [
+      -4.0034,
+      -17.8953
+    ],
+    [
+      -4.0135,
+      -18.0503
+    ],
+    [
+      -4.0305,
+      -18.2047
+    ],
+    [
+      -4.0541,
+      -18.3582
+    ],
+    [
+      -4.0844,
+      -18.5105
+    ],
+    [
+      -4.1213,
+      -18.6614
+    ],
+    [
+      -4.1648,
+      -18.8105
+    ],
+    [
+      -4.2147,
+      -18.9576
+    ],
+    [
+      -4.271,
+      -19.1024
+    ],
+    [
+      -4.3335,
+      -19.2445
+    ],
+    [
+      -4.4022,
+      -19.3838
+    ],
+    [
+      -4.4769,
+      -19.52
+    ],
+    [
+      -4.5575,
+      -19.6528
+    ],
+    [
+      -4.6438,
+      -19.7819
+    ],
+    [
+      -4.7357,
+      -19.9072
+    ],
+    [
+      -4.8329,
+      -20.0283
+    ],
+    [
+      -4.9353,
+      -20.1451
+    ],
+    [
+      -5.0427,
+      -20.2573
+    ],
+    [
+      -5.1549,
+      -20.3647
+    ],
+    [
+      -5.2717,
+      -20.4671
+    ],
+    [
+      -5.3928,
+      -20.5643
+    ],
+    [
+      -5.5181,
+      -20.6562
+    ],
+    [
+      -5.6472,
+      -20.7425
+    ],
+    [
+      -5.78,
+      -20.8231
+    ],
+    [
+      -5.9162,
+      -20.8978
+    ],
+    [
+      -6.0555,
+      -20.9665
+    ],
+    [
+      -6.1976,
+      -21.029
+    ],
+    [
+      -6.3424,
+      -21.0853
+    ],
+    [
+      -6.4895,
+      -21.1352
+    ],
+    [
+      -6.6386,
+      -21.1787
+    ],
+    [
+      -6.7895,
+      -21.2156
+    ],
+    [
+      -6.9418,
+      -21.2459
+    ],
+    [
+      -7.0953,
+      -21.2695
+    ],
+    [
+      -7.2497,
+      -21.2865
+    ],
+    [
+      -7.4047,
+      -21.2966
+    ],
+    [
+      -7.56,
+      -21.3
+    ],
+    [
+      -9.5,
+      -21.3
+    ]
+  ],
+  "bay_polygon": [
+    [
+      -4.0,
+      -19.89
+    ],
+    [
+      -14.4,
+      -19.89
+    ],
+    [
+      -14.4,
+      -22.39
+    ],
+    [
+      -4.0,
+      -22.39
+    ]
+  ],
+  "footprint": {
+    "half_length_m": 2.503,
+    "half_width_m": 0.94,
+    "length_m": 5.006,
+    "width_m": 1.88,
+    "front_margin_m": 0.3
+  },
+  "obstacle_point_count": 29,
+  "tolerances": {
+    "position_m": 0.25,
+    "heading_deg": 5.0,
+    "boundary_clearance_m": 0.05,
+    "obstacle_clearance_m": 0.2,
+    "stop_speed_mps": 0.05,
+    "stable_drift_m": 0.02,
+    "stable_samples": 3,
+    "route_deviation_m": 0.5,
+    "progress_tolerance_m": 0.35,
+    "corridor_half_width_m": 3.0
+  },
+  "source": "park_entry + build_forward_right_arc(3.56 m) + validated final straight to PARKING_SLOT_XY",
+  "geometry_status": "valid",
+  "coordinate_contract": {
+    "frame": "CARLA world (x, y) metres",
+    "vehicle_reference": "CARLA actor transform (bounding-box centre)",
+    "heading": "radians, numeric x-y plane, CCW positive",
+    "terminal_target": "parking graph slot pose, west heading"
+  }
+}

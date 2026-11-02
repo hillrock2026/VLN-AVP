@@ -1,0 +1,429 @@
+{
+  "task_id": "cap07b-06",
+  "bay_id": "bay03",
+  "slot_node_id": "park_slot",
+  "entry_task_id": "cap07b-04",
+  "refinement_task_id": "cap07b-05",
+  "entry_authorization_id": "6699b2cd3f147d588b1b39ca4217b48bf1e5dbf2d9ed90ade16fc988323bea4e",
+  "expected_vehicle_actor_id": 804,
+  "vehicle": {
+    "actor_id": 804,
+    "type_id": "vehicle.dodge.charger",
+    "x": -9.481709480285645,
+    "y": -21.19647216796875,
+    "z": 5.785881042480469,
+    "yaw_rad": -3.103948605265414,
+    "yaw_deg": -177.84315490722656,
+    "frame": 11617200,
+    "bounding_box": {
+      "half_length": 2.503021717071533,
+      "half_width": 0.9404758214950562,
+      "half_height": 0.7701568603515625,
+      "offset_x": -0.00623817415907979,
+      "offset_y": -1.820765744503389e-16,
+      "offset_z": 0.7627836465835571
+    },
+    "velocity": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "speed_mps": 0.0,
+    "actor_alive": true,
+    "actor_id_consistent": true
+  },
+  "config_footprint": {
+    "half_length_m": 2.503,
+    "half_width_m": 0.94,
+    "length_m": 5.006,
+    "width_m": 1.88,
+    "front_margin_m": 0.3
+  },
+  "bay_polygon": [
+    [
+      -4.0,
+      -19.89
+    ],
+    [
+      -14.4,
+      -19.89
+    ],
+    [
+      -14.4,
+      -22.39
+    ],
+    [
+      -4.0,
+      -22.39
+    ]
+  ],
+  "bay_center": [
+    -9.5,
+    -21.14
+  ],
+  "bay_heading_rad": 3.141592653589793,
+  "obstacle_evidence": {
+    "source": "historical_static_samples+live_ray_probe",
+    "live": true,
+    "point_count": 12,
+    "live_point_count": 12,
+    "historical_point_count": 0,
+    "coverage_note": "29 historical static collision-mesh samples plus a sparse live 32-ray, 2-height probe from 2.8 m to 5.8 m around the final pose; not a complete live occupancy model",
+    "points": [
+      [
+        -7.5018,
+        -19.2166
+      ],
+      [
+        -7.7835,
+        -17.0967
+      ],
+      [
+        -9.4817,
+        -17.0967
+      ],
+      [
+        -11.1799,
+        -17.0967
+      ],
+      [
+        -11.2009,
+        -17.0461
+      ],
+      [
+        -14.3924,
+        -19.1624
+      ],
+      [
+        -14.5987,
+        -19.0769
+      ],
+      [
+        -14.5987,
+        -21.1965
+      ],
+      [
+        -14.9988,
+        -21.1965
+      ],
+      [
+        -14.5987,
+        -23.3161
+      ],
+      [
+        -7.7318,
+        -16.9719
+      ],
+      [
+        -9.4817,
+        -16.9746
+      ]
+    ]
+  },
+  "collision_evidence": {
+    "sensor_available": true,
+    "sensor_role": "vln_cap07b04_collision",
+    "monitoring_started_frame": 11614661,
+    "monitoring_started_utc": "2026-10-31T07:29:07.700975+00:00",
+    "first_motion_frame": 11614666,
+    "current_frame": 11617200,
+    "task_event_count": 0,
+    "verification_event_count": 0,
+    "task_events": [],
+    "verification_events": [],
+    "evidence_gap": false,
+    "gap_note": "the Entry collision sensor was attached before the first commanded Entry segment; the stationary spawn-settle ticks before attachment are not covered and are documented as a limitation"
+  },
+  "stability_samples": [
+    {
+      "frame": 11617191,
+      "sim_time": 3271.5116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617192,
+      "sim_time": 3271.5616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617193,
+      "sim_time": 3271.6116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617194,
+      "sim_time": 3271.6616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617195,
+      "sim_time": 3271.7116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617196,
+      "sim_time": 3271.7616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617197,
+      "sim_time": 3271.8116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617198,
+      "sim_time": 3271.8616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617199,
+      "sim_time": 3271.9116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617200,
+      "sim_time": 3271.9616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    }
+  ],
+  "actor_alive": true,
+  "actor_id_consistent": true,
+  "bay_identity_consistent": true,
+  "entry_artifact": {
+    "schema": "vln.parking.entry_result.v1",
+    "skill": "vln.parking.entry",
+    "stage": "ENTRY_COMPLETED",
+    "task_id": "cap07b-04",
+    "bay_id": "bay03",
+    "slot_node_id": "park_slot",
+    "approach_node_id": "park_entry",
+    "route_id": "bay03-entry-7570949dfd31",
+    "route_hash": "7570949dfd3112c378ddf95b6872b2d5eb4cd5d3adbd029f932048c4b7b84694",
+    "entry_valid": true,
+    "completed": true,
+    "identity_verified": true,
+    "authorization_verified": true,
+    "checks": {
+      "target_identity_matches_binding": true,
+      "route_identity_matches_authorization": true,
+      "entry_authorization_active": true,
+      "vehicle_state_valid": true,
+      "route_progress_terminal": true,
+      "terminal_position": true,
+      "terminal_heading": true,
+      "footprint_inside_bay": true,
+      "boundary_clearance": true,
+      "obstacle_clearance": true,
+      "route_deviation": true,
+      "entry_corridor": true,
+      "stopped": true,
+      "stop_stable": true,
+      "no_collision": true
+    },
+    "reasons": [],
+    "measurement": {
+      "x": -9.4864,
+      "y": -21.2488,
+      "yaw_rad": -3.081275,
+      "yaw_deg": -176.5441,
+      "speed_mps": 0.0,
+      "stopped": true,
+      "route_s": 8.0628,
+      "cross_track_m": 0.0512,
+      "route_deviation_m": 0.0512,
+      "progress_m": 8.0628,
+      "remaining_m": 0.0136,
+      "distance_to_target_m": 0.053,
+      "heading_error_deg": 3.4559,
+      "lateral_error_m": -0.0512,
+      "longitudinal_error_m": -0.0136,
+      "footprint_corners": [
+        [
+          -11.9282,
+          -22.338
+        ],
+        [
+          -12.0415,
+          -20.4614
+        ],
+        [
+          -7.0446,
+          -20.1596
+        ],
+        [
+          -6.9313,
+          -22.0362
+        ]
+      ],
+      "footprint_inside_bay": true,
+      "boundary_clearance_m": 0.052,
+      "obstacle_clearance_m": 0.751,
+      "reference_to_route_m": 0.0512,
+      "footprint_corners_inside_corridor": true,
+      "stability": {
+        "samples": 5,
+        "max_speed_mps": 0.0,
+        "position_drift_m": 0.0,
+        "stable": true
+      },
+      "collision_count": 0
+    },
+    "stage_history": [
+      "ENTRY_PENDING",
+      "ENTRY_COMPLETED"
+    ],
+    "vehicle_actor_id": 804
+  },
+  "entry_artifact_sha256": "17a68bc73c78fb62e843c1301c9b0dbe7cb30a47a6caa6c164401650997141b6",
+  "pose_ready_artifact": {
+    "schema": "vln.parking.refinement_result.v1",
+    "skill": "vln.parking.refinement",
+    "stage": "PARKING_POSE_READY",
+    "task_id": "cap07b-05",
+    "bay_id": "bay03",
+    "slot_node_id": "park_slot",
+    "entry_completion_id": "d27cb2091cd12e808108d35aee9d874b6f6cc521cd210207a781cb343ef848d2",
+    "plan_hash": "c99c30bc948462c7978247d955d85fe1bb20562eee146b4d19d760e5f0b018f7",
+    "identity_verified": true,
+    "authorization_verified": true,
+    "ready": true,
+    "parking_completed": false,
+    "checks": {
+      "identity": true,
+      "authorization": true,
+      "footprint_inside_bay": true,
+      "boundary_clearance": true,
+      "obstacle_clearance": true,
+      "heading": true,
+      "position": true,
+      "stopped": true,
+      "stop_stable": true,
+      "no_collision": true
+    },
+    "reasons": [],
+    "measurement": {
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.8432,
+      "speed_mps": 0.0,
+      "stopped": true,
+      "heading_error_deg": 2.1568,
+      "lateral_error_m": 0.0565,
+      "longitudinal_error_m": -0.0183,
+      "distance_to_center_m": 0.0594,
+      "footprint_corners": [
+        [
+          -11.9476,
+          -22.23
+        ],
+        [
+          -12.0183,
+          -20.3514
+        ],
+        [
+          -7.0158,
+          -20.163
+        ],
+        [
+          -6.9451,
+          -22.0416
+        ]
+      ],
+      "footprint_inside_bay": true,
+      "boundary_clearance_m": 0.16,
+      "obstacle_clearance_m": null,
+      "stability": {
+        "samples": 5,
+        "max_speed_mps": 0.0,
+        "position_drift_m": 0.0,
+        "stable": true
+      },
+      "collision_count": 0
+    },
+    "stage_history": [
+      "REFINEMENT_PENDING",
+      "PARKING_POSE_READY"
+    ],
+    "vehicle_actor_id": 804,
+    "entry_completion_inputs": {
+      "entry_task_id": "cap07b-04",
+      "entry_authorization_id": "6699b2cd3f147d588b1b39ca4217b48bf1e5dbf2d9ed90ade16fc988323bea4e",
+      "entry_route_hash": "7570949dfd3112c378ddf95b6872b2d5eb4cd5d3adbd029f932048c4b7b84694",
+      "final_pose": [
+        -9.4864,
+        -21.2488,
+        -3.081275
+      ],
+      "final_verification_stage": "ENTRY_COMPLETED",
+      "final_boundary_clearance_m": 0.052,
+      "final_heading_error_deg": 3.455946980827264,
+      "entry_completion_id": "d27cb2091cd12e808108d35aee9d874b6f6cc521cd210207a781cb343ef848d2",
+      "parking_task_id": "cap07b-06",
+      "vehicle_actor_id": 804
+    }
+  },
+  "pose_ready_artifact_sha256": "60c1d9a2ec9f01a9a3d46c9ac77cf7bf7f8fb3a033f8c021d90bf96b627f49ef",
+  "entry_frame": 11616164,
+  "pose_ready_frame": 11617190,
+  "tolerances": {
+    "position_m": 0.25,
+    "lateral_error_m": 0.25,
+    "longitudinal_error_m": 0.25,
+    "heading_deg": 5.0,
+    "boundary_clearance_m": 0.05,
+    "obstacle_clearance_m": 0.2,
+    "stop_speed_mps": 0.05,
+    "stable_samples": 5,
+    "stable_position_drift_m": 0.02,
+    "stable_heading_drift_deg": 0.5,
+    "sample_interval_s": 0.05,
+    "pose_ready_pose_gap_m": 0.1,
+    "pose_ready_heading_gap_deg": 2.0,
+    "max_final_frame_gap": 2000,
+    "max_verification_age_s": 300.0,
+    "max_bbox_vs_config_delta_m": 0.01
+  },
+  "now": "2026-10-31T07:29:29.986240+00:00",
+  "pose_ready": true
+}

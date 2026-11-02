@@ -52,7 +52,6 @@ from .planner_bridge import (
 )
 from .visual_decision import (
     DECISION_FIELDS,
-    POSITION_TO_DIRECTION,
     NavigationDirective,
     VisualNavigationDecision,
     evidence_is_insufficient,
@@ -75,7 +74,6 @@ __all__ = [
     "VisualDecisionParseError",
     "VisualDecisionValidationError",
     "DECISION_FIELDS",
-    "POSITION_TO_DIRECTION",
     "NavigationDirective",
     "VisualNavigationDecision",
     "evidence_is_insufficient",

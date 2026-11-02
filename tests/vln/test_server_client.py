@@ -328,6 +328,7 @@ def test_request_uses_the_confirmed_contract_and_returns_raw_content(
     assert payload["max_tokens"] == ZDTaichuServerBackend().max_new_tokens
     assert payload["temperature"] == 0.0
     assert payload["enable_thinking"] is False
+    assert "stop" not in payload
     assert "model" not in payload  # the server's own default applies
     (message,) = payload["messages"]
     assert message["role"] == "user"
@@ -343,6 +344,18 @@ def test_thinking_and_model_name_are_configurable(fake_urlopen, with_key) -> Non
     payload = json.loads(opener.calls[0]["request"].data.decode("utf-8"))
     assert payload["enable_thinking"] is True
     assert payload["model"] == "ZDTaichu5.0-9B"
+
+
+def test_thinking_off_can_carry_the_contract_boundary_stop(
+    fake_urlopen, with_key
+) -> None:
+    opener = fake_urlopen(result=_Response(_chat_response(_VALID_TEXT)))
+    _backend(enable_thinking=False, stop=["</think>"]).generate(
+        PreparedObservation(text="scene"), "park"
+    )
+    payload = json.loads(opener.calls[0]["request"].data.decode("utf-8"))
+    assert payload["enable_thinking"] is False
+    assert payload["stop"] == ["</think>"]
 
 
 def test_empty_input_is_rejected_before_any_request(fake_urlopen, with_key) -> None:

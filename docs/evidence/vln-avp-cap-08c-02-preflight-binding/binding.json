@@ -1,0 +1,78 @@
+{
+  "schema": "vln.parking_target_binding.v1",
+  "status": "temporarily_not_visible",
+  "instruction": "请将车辆停入左侧靠近出口的空闲车位",
+  "round_index": 0,
+  "bay_id": null,
+  "slot_node_id": null,
+  "selected_label": null,
+  "prior_bay_id": null,
+  "reason": "no known bay is fully visible in the current frame",
+  "executable": false,
+  "candidates": [
+    {
+      "label": "",
+      "bay_id": "bay03",
+      "slot_node_id": "park_slot",
+      "occupancy": "unknown",
+      "visible": false,
+      "side": "LEFT",
+      "bearing_deg": -80.466,
+      "distance_m": 13.485,
+      "image_bbox": null
+    },
+    {
+      "label": "",
+      "bay_id": "bay11",
+      "slot_node_id": "bay11_slot",
+      "occupancy": "unknown",
+      "visible": false,
+      "side": "LEFT",
+      "bearing_deg": -85.023,
+      "distance_m": 8.869,
+      "image_bbox": null
+    }
+  ],
+  "evidence": {
+    "request": {
+      "raw": "请将车辆停入左侧靠近出口的空闲车位",
+      "target_kind": "车位",
+      "occupancy": "vacant",
+      "side": "LEFT",
+      "landmark": "near_exit",
+      "landmark_verified": false,
+      "notes": [
+        "landmark near_exit is advisory only: no verified exit anchor exists"
+      ]
+    },
+    "visible_labels": [],
+    "selected": null,
+    "model_occupancy_answers": {},
+    "landmark_used": false,
+    "landmark_verified": false,
+    "candidate_table": [
+      {
+        "label": "",
+        "bay_id": "bay03",
+        "slot_node_id": "park_slot",
+        "occupancy": "unknown",
+        "visible": false,
+        "side": "LEFT",
+        "bearing_deg": -80.466,
+        "distance_m": 13.485,
+        "image_bbox": null
+      },
+      {
+        "label": "",
+        "bay_id": "bay11",
+        "slot_node_id": "bay11_slot",
+        "occupancy": "unknown",
+        "visible": false,
+        "side": "LEFT",
+        "bearing_deg": -85.023,
+        "distance_m": 8.869,
+        "image_bbox": null
+      }
+    ]
+  }
+}

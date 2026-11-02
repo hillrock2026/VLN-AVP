@@ -1,0 +1,325 @@
+{
+  "schema": "vln.parking.final_verification.v1",
+  "skill": "vln.parking.final_verification",
+  "verifier_version": "vln.parking.final_verification.v1",
+  "producer": "final_parking_verifier",
+  "decision": "FINAL_PARKING_VERIFIED",
+  "verification_passed": true,
+  "parking_completed": false,
+  "task_id": "cap07b-06",
+  "bay_id": "bay03",
+  "slot_node_id": "park_slot",
+  "vehicle_actor_id": 804,
+  "entry_artifact_sha256": "17a68bc73c78fb62e843c1301c9b0dbe7cb30a47a6caa6c164401650997141b6",
+  "pose_ready_artifact_sha256": "60c1d9a2ec9f01a9a3d46c9ac77cf7bf7f8fb3a033f8c021d90bf96b627f49ef",
+  "entry_completion_id": "d27cb2091cd12e808108d35aee9d874b6f6cc521cd210207a781cb343ef848d2",
+  "refinement_plan_hash": "c99c30bc948462c7978247d955d85fe1bb20562eee146b4d19d760e5f0b018f7",
+  "verification_frame": 11617200,
+  "verification_timestamp_utc": "2026-10-31T07:29:29.986240+00:00",
+  "initial_transform": {
+    "x": -9.4817,
+    "y": -21.1965,
+    "yaw_rad": -3.103949,
+    "source": "PARKING_POSE_READY artifact"
+  },
+  "final_transform": {
+    "x": -9.481709480285645,
+    "y": -21.19647216796875,
+    "yaw_rad": -3.103948605265414,
+    "frame": 11617200,
+    "source": "live CARLA transform"
+  },
+  "measurement": {
+    "x": -9.4817,
+    "y": -21.1965,
+    "yaw_rad": -3.103949,
+    "yaw_deg": -177.8432,
+    "heading_error_deg": 2.1568,
+    "lateral_error_m": 0.0565,
+    "longitudinal_error_m": -0.0183,
+    "distance_to_center_m": 0.0594,
+    "footprint_corners": [
+      [
+        -11.9476,
+        -22.2305
+      ],
+      [
+        -12.0184,
+        -20.3509
+      ],
+      [
+        -7.0159,
+        -20.1625
+      ],
+      [
+        -6.9451,
+        -22.0421
+      ]
+    ],
+    "bbox_center_footprint_corners": [
+      [
+        -11.9413,
+        -22.2302
+      ],
+      [
+        -12.0121,
+        -20.3506
+      ],
+      [
+        -7.0096,
+        -20.1622
+      ],
+      [
+        -6.9388,
+        -22.0418
+      ]
+    ],
+    "config_footprint_corners": [
+      [
+        -11.9476,
+        -22.23
+      ],
+      [
+        -12.0183,
+        -20.3513
+      ],
+      [
+        -7.0159,
+        -20.1629
+      ],
+      [
+        -6.9451,
+        -22.0416
+      ]
+    ],
+    "footprint_inside_bay": true,
+    "bbox_center_footprint_inside_bay": true,
+    "config_footprint_inside_bay": true,
+    "boundary_clearance_m": 0.16,
+    "bbox_center_boundary_clearance_m": 0.16,
+    "config_boundary_clearance_m": 0.16,
+    "obstacle_clearance_m": 0.963,
+    "bbox_vs_config_delta_m": 0.000476,
+    "speed_mps": 0.0,
+    "limiting_footprint": "actor"
+  },
+  "stability": {
+    "samples": 10,
+    "max_speed_mps": 0.0,
+    "position_drift_m": 0.0,
+    "heading_drift_deg": 0.0,
+    "frame_monotonic": true,
+    "interval_ok": true,
+    "stable": true,
+    "reasons": []
+  },
+  "collision": {
+    "sensor_available": true,
+    "sensor_role": "vln_cap07b04_collision",
+    "monitoring_started_frame": 11614661,
+    "monitoring_started_utc": "2026-10-31T07:29:07.700975+00:00",
+    "first_motion_frame": 11614666,
+    "current_frame": 11617200,
+    "task_event_count": 0,
+    "verification_event_count": 0,
+    "task_events": [],
+    "verification_events": [],
+    "evidence_gap": false,
+    "gap_note": "the Entry collision sensor was attached before the first commanded Entry segment; the stationary spawn-settle ticks before attachment are not covered and are documented as a limitation"
+  },
+  "obstacle": {
+    "source": "historical_static_samples+live_ray_probe",
+    "live": true,
+    "point_count": 12,
+    "live_point_count": 12,
+    "historical_point_count": 0,
+    "coverage_note": "29 historical static collision-mesh samples plus a sparse live 32-ray, 2-height probe from 2.8 m to 5.8 m around the final pose; not a complete live occupancy model",
+    "points": [
+      [
+        -7.5018,
+        -19.2166
+      ],
+      [
+        -7.7835,
+        -17.0967
+      ],
+      [
+        -9.4817,
+        -17.0967
+      ],
+      [
+        -11.1799,
+        -17.0967
+      ],
+      [
+        -11.2009,
+        -17.0461
+      ],
+      [
+        -14.3924,
+        -19.1624
+      ],
+      [
+        -14.5987,
+        -19.0769
+      ],
+      [
+        -14.5987,
+        -21.1965
+      ],
+      [
+        -14.9988,
+        -21.1965
+      ],
+      [
+        -14.5987,
+        -23.3161
+      ],
+      [
+        -7.7318,
+        -16.9719
+      ],
+      [
+        -9.4817,
+        -16.9746
+      ]
+    ],
+    "clearance_m": 0.963
+  },
+  "velocity_samples": [
+    {
+      "frame": 11617191,
+      "sim_time": 3271.5116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617192,
+      "sim_time": 3271.5616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617193,
+      "sim_time": 3271.6116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617194,
+      "sim_time": 3271.6616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617195,
+      "sim_time": 3271.7116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617196,
+      "sim_time": 3271.7616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617197,
+      "sim_time": 3271.8116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617198,
+      "sim_time": 3271.8616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617199,
+      "sim_time": 3271.9116,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    },
+    {
+      "frame": 11617200,
+      "sim_time": 3271.9616,
+      "x": -9.4817,
+      "y": -21.1965,
+      "yaw_rad": -3.103949,
+      "yaw_deg": -177.84317752385238,
+      "speed_mps": 0.0
+    }
+  ],
+  "checks": {
+    "inputs_complete": true,
+    "task_identity": true,
+    "bay_identity": true,
+    "slot_identity": true,
+    "vehicle_identity": true,
+    "vehicle_geometry_consistent": true,
+    "entry_artifact_valid": true,
+    "entry_artifact_hash": true,
+    "pose_ready_artifact_valid": true,
+    "pose_ready_artifact_hash": true,
+    "stage_chain_causal": true,
+    "current_state_matches_pose_ready": true,
+    "footprint_inside_bay": true,
+    "boundary_clearance": true,
+    "lateral_error": true,
+    "longitudinal_error": true,
+    "heading_error": true,
+    "position_tolerance": true,
+    "obstacle_evidence_present": true,
+    "obstacle_clearance": true,
+    "collision_sensor_available": true,
+    "collision_history_complete": true,
+    "no_collision": true,
+    "velocity_readable": true,
+    "stopped": true,
+    "stability_samples": true,
+    "stability_position_drift": true,
+    "stability_heading_drift": true,
+    "actor_stable": true,
+    "bay_stable": true
+  },
+  "failed_checks": [],
+  "reasons": [],
+  "limitations": [
+    "Final verification uses discrete CARLA stability samples, not a continuous-time proof.",
+    "Obstacle evidence combines historical static collision-mesh samples with a sparse live ray probe; it is not a complete live occupancy model.",
+    "Boundary clearance uses the declared bay polygon; painted lines are not physical obstacles.",
+    "The configured footprint and the real CARLA bounding box can differ by sub-millimetre amounts; the stricter clearance of the two is used.",
+    "Collision monitoring starts when the collision sensor is attached; the stationary spawn-settle ticks before attachment are not covered.",
+    "CARLA simulation only; single executor; the existing monocular-RGB perception limits remain.",
+    "This is not a production safety certification."
+  ],
+  "result_sha256": "dad0d9cc0b3d6091eb5ba7e45f70480eee463ae872b1ac33c927c648e47d3fb3"
+}

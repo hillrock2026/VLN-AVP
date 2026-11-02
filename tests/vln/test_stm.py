@@ -365,3 +365,281 @@ def test_memory_and_rendered_context_are_bounded() -> None:
 
     with pytest.raises(ValueError):
         memory.render_context(max_chars=127)
+
+
+# -- CARLA visual-navigation rounds ----------------------------------------
+
+
+def _carla_execution(*, moved_m: float = 10.0, success: bool = True) -> dict:
+    return {
+        "executed": True,
+        "target_node_id": "a_mid",
+        "moved_m": moved_m,
+        "stop_reason": "success" if success else "timeout",
+        "segment_success": success,
+        "model_selected_edge": ["fork", "a_mid"],
+        "route_node_ids": ["fork", "a_mid", "a_goal"],
+        "kernel": {"response": {"execution_status": "completed"}},
+        "post_state": {"x": 1.5, "y": 2.5, "yaw": -89.0, "speed": 0.0},
+    }
+
+
+def test_carla_round_records_decision_execution_and_next_context() -> None:
+    memory = NavigationTaskMemory(task_id="carla-task", max_context_chars=4000)
+    record = memory.record_carla_round(
+        round_index=1,
+        intent_id="carla-r1",
+        action="NAVIGATE_TO",
+        target={"x": 1.0, "y": 2.0},
+        visual_decision=_decision(identified_as="blue car", direction="STRAIGHT", position="AHEAD"),
+        directive=_directive(identified_as="blue car", direction="STRAIGHT", position="AHEAD"),
+        outcome=RoundOutcome.SOFTWARE_SUCCEEDED,
+        task_target="blue car",
+        execution=_carla_execution(),
+    )
+
+    assert record.task_id == "carla-task"
+    assert record.round_index == 1
+    assert record.outcome == RoundOutcome.SOFTWARE_SUCCEEDED
+    assert memory.next_round_index == 2
+    assert memory.active_fact("task_target").value == "blue car"
+    assert memory.active_fact("last_action_outcome").value == RoundOutcome.SOFTWARE_SUCCEEDED
+    assert memory.active_fact("navigation_direction").value == "STRAIGHT"
+    execution_fact = json.loads(memory.active_fact("last_execution").value)
+    assert execution_fact["moved_m"] == 10.0
+    assert execution_fact["target_node_id"] == "a_mid"
+
+    context = memory.render_context()
+    assert '"key":"task_target","value":"blue car"' in context
+    assert '"round":1' in context
+    assert '"key":"last_execution"' in context
+    assert '"physical_arrival":"unknown"' in context
+    assert "arrived" not in context.lower()
+
+
+def test_carla_refusal_is_explicit_and_not_a_success() -> None:
+    memory = NavigationTaskMemory(task_id="carla-task-refused")
+    memory.record_carla_round(
+        round_index=1,
+        intent_id="carla-r1",
+        action="NAVIGATE_TO",
+        target={"x": 1.0, "y": 2.0},
+        visual_decision=_decision(identified_as="red car", direction="LEFT", position="LEFT"),
+        directive=_directive(identified_as="red car", direction="LEFT", position="LEFT"),
+        outcome=RoundOutcome.REJECTED,
+        task_target="red car",
+        execution={
+            "executed": False,
+            "moved_m": 0.0,
+            "stop_reason": "no_compatible_route",
+            "segment_success": False,
+            "post_state": {"x": 0.0, "y": 0.0, "yaw": 0.0, "speed": 0.0},
+        },
+        error="no_compatible_route: visual direction conflicts",
+    )
+
+    assert memory.active_fact("last_action_outcome").value == RoundOutcome.REJECTED
+    assert memory.active_fact("last_execution").value.find("no_compatible_route") >= 0
+    assert any("action outcome" in item.question for item in memory.unresolved)
+    context = memory.render_context()
+    assert "no_compatible_route" in context
+    assert '"physical_arrival":"unknown"' in context
+
+
+def test_carla_round_target_change_marks_previous_target_stale() -> None:
+    memory = NavigationTaskMemory(task_id="carla-task-switch")
+    memory.record_carla_round(
+        round_index=1,
+        intent_id="carla-r1",
+        action="NAVIGATE_TO",
+        target={"x": 1.0, "y": 2.0},
+        visual_decision=_decision(identified_as="blue car"),
+        directive=_directive(identified_as="blue car"),
+        outcome=RoundOutcome.SOFTWARE_SUCCEEDED,
+        task_target="blue car",
+        execution=_carla_execution(),
+    )
+    memory.record_carla_round(
+        round_index=2,
+        intent_id="carla-r2",
+        action="NAVIGATE_TO",
+        target={"x": 3.0, "y": 4.0},
+        visual_decision=_decision(identified_as="red car"),
+        directive=_directive(identified_as="red car"),
+        outcome=RoundOutcome.REJECTED,
+        task_target="red car",
+        execution=None,
+        error="rejected",
+    )
+
+    stale = [fact for fact in memory.facts if fact.status == FactStatus.STALE]
+    assert stale
+    target_fact = memory.active_fact("task_target")
+    assert target_fact.value == "red car"
+    assert target_fact.previous_value == "blue car"
+    assert target_fact.source_round == 2
+    assert memory.next_round_index == 3
+
+
+def test_carla_round_rejects_non_increasing_index_and_unknown_outcome() -> None:
+    memory = NavigationTaskMemory(task_id="carla-task-order")
+    memory.record_carla_round(
+        round_index=2,
+        intent_id="carla-r2",
+        action="NAVIGATE_TO",
+        target=None,
+        visual_decision=None,
+        directive=None,
+        outcome=RoundOutcome.FAILED_BEFORE_EXECUTION,
+        task_target="blue car",
+        execution=None,
+        error="model unavailable",
+    )
+    with pytest.raises(ValueError):
+        memory.record_carla_round(
+            round_index=2,
+            intent_id="dup",
+            action="NAVIGATE_TO",
+            target=None,
+            visual_decision=None,
+            directive=None,
+            outcome=RoundOutcome.REJECTED,
+            task_target="blue car",
+        )
+    with pytest.raises(ValueError):
+        memory.record_carla_round(
+            round_index=3,
+            intent_id="bad-outcome",
+            action="NAVIGATE_TO",
+            target=None,
+            visual_decision=None,
+            directive=None,
+            outcome="success",
+            task_target="blue car",
+        )
+    assert len(memory.records) == 1
+
+
+def test_compact_context_keeps_recent_rounds_and_active_facts() -> None:
+    memory = NavigationTaskMemory(
+        task_id="carla-compact", max_entries=8, max_facts=32
+    )
+    for round_index in range(1, 6):
+        memory.record_carla_round(
+            round_index=round_index,
+            intent_id=f"carla-r{round_index}",
+            action="NAVIGATE_TO",
+            target={"x": float(round_index), "y": 2.0},
+            visual_decision=_decision(identified_as=f"target-{round_index}"),
+            directive=_directive(identified_as=f"target-{round_index}"),
+            outcome=RoundOutcome.SOFTWARE_SUCCEEDED,
+            task_target=f"target-{round_index}",
+            execution=_carla_execution(moved_m=float(round_index)),
+        )
+    context = memory.render_compact_context(max_chars=2400)
+    assert len(context) <= 2400
+    payload = json.loads(context)
+    assert payload["task_id"] == "carla-compact"
+    assert payload["physical_arrival"] == "unknown"
+    assert payload["round"] == 6
+    assert len(payload["rounds"]) <= 3
+    assert payload["rounds"][-1]["round"] == 5
+    assert "task_target" in payload["facts"]
+    assert "last_execution" in payload["facts"]
+    assert "previous_value" not in context
+    assert "stale" not in context
+    # Only the newest target survives as an active fact.
+    assert payload["facts"]["task_target"] == "target-5"
+
+
+def test_compact_context_remains_bounded() -> None:
+    memory = NavigationTaskMemory(task_id="carla-compact-bound", max_context_chars=4000)
+    memory.record_carla_round(
+        round_index=1,
+        intent_id="carla-r1",
+        action="NAVIGATE_TO",
+        target={"x": 1.0, "y": 2.0},
+        visual_decision=_decision(identified_as="blue car"),
+        directive=_directive(identified_as="blue car"),
+        outcome=RoundOutcome.SOFTWARE_SUCCEEDED,
+        task_target="blue car",
+        execution=_carla_execution(),
+    )
+    compact = memory.render_compact_context(max_chars=128)
+    assert len(compact) <= 128
+    assert json.loads(compact)["truncated"] is True
+    with pytest.raises(ValueError):
+        memory.render_compact_context(max_chars=127)
+
+
+def _binding(status: str, round_index: int, *, bay_id="bay03", slot="park_slot", label="B"):
+    from vln.nav.target_binding import TargetBinding
+
+    return TargetBinding(
+        status=status,
+        instruction="请将车辆停入左侧的空闲车位",
+        round_index=round_index,
+        bay_id=bay_id,
+        slot_node_id=slot,
+        selected_label=label,
+        reason="round result",
+    )
+
+
+def test_target_binding_history_and_facts() -> None:
+    memory = NavigationTaskMemory("cap07a-stm")
+
+    first = memory.record_target_binding(_binding("bound", 0, label="B"))
+    second = memory.record_target_binding(
+        _binding("bound", 1, label="A")
+    )
+
+    assert first.bay_id == second.bay_id == "bay03"
+    assert first.selected_label == "B"
+    assert second.selected_label == "A"
+    assert memory.target_binding is not None
+    assert memory.target_binding.selected_label == "A"
+    assert memory.target_binding.bay_id == "bay03"
+    assert memory.bound_target is not None
+    assert memory.bound_target.slot_node_id == "park_slot"
+    assert len(memory.target_bindings) == 2
+    assert memory.active_fact("target_binding_status").value == "bound"
+    assert memory.active_fact("target_binding_bay").value == "bay03"
+    assert memory.active_fact("target_binding_instruction").value == first.instruction
+
+    context = json.loads(memory.render_context())
+    assert context["target_binding"]["bay_id"] == "bay03"
+    assert context["target_binding"]["round"] == 1
+
+    compact = json.loads(memory.render_compact_context())
+    assert compact["target_binding"]["status"] == "bound"
+    assert compact["target_binding"]["bay_id"] == "bay03"
+
+
+def test_target_binding_invalidation_is_memory_visible() -> None:
+    memory = NavigationTaskMemory("cap07a-stm-invalid")
+    memory.record_target_binding(_binding("bound", 0))
+    memory.record_target_binding(_binding("invalidated", 2, label="B"))
+
+    assert memory.target_binding.status == "invalidated"
+    assert memory.bound_target is None
+    assert memory.active_fact("target_binding_status").value == "invalidated"
+    context = json.loads(memory.render_context())
+    assert context["target_binding"]["status"] == "invalidated"
+    assert context["target_binding"]["executable"] is False
+
+
+def test_target_binding_requires_scene_identity_when_bound() -> None:
+    memory = NavigationTaskMemory("cap07a-stm-invalid-record")
+    bad = SimpleNamespace(
+        status="bound",
+        instruction="停入空位",
+        round_index=0,
+        bay_id=None,
+        slot_node_id=None,
+        selected_label="A",
+        reason="",
+    )
+    with pytest.raises(ValueError):
+        memory.record_target_binding(bad)
+    assert memory.target_binding is None
